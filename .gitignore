@@ -1,0 +1,10 @@
+.env
+
+gluetun/*
+jellyfin/*
+qbittorrent/*
+radarr/*
+sonarr/*
+prowlarr/*
+seerr/*
+nginx/*
