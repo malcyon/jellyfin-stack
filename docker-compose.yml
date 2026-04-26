@@ -114,6 +114,8 @@ services:
     volumes:
       - ./jellyfin:/config
       - /mnt/media:/data
+    devices:
+      - /dev/dri:/dev/dri
     restart: unless-stopped
     networks:
       - media
@@ -139,6 +141,8 @@ services:
     volumes:
       - ./homepage:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/media:/mnt/media:ro 
+      - /data:/data:ro
     environment:
       - HOMEPAGE_ALLOWED_HOSTS=home.local,192.168.1.181
       - PUID=${PUID}
@@ -146,6 +150,102 @@ services:
     restart: unless-stopped
     networks:
       - media
+
+#  degoog:
+#    image: ghcr.io/fccview/degoog:latest
+#    volumes:
+#      - ./degoog:/app/data
+#    user: "1000:1000"
+#    ports:
+#      - "4444:4444"
+#    restart: unless-stopped
+
+#  immich-server:
+#    image: ghcr.io/immich-app/immich-server:release
+#    container_name: immich-server
+#    restart: unless-stopped
+#    ports:
+#      - "2283:2283"
+#    volumes:
+#      - ./immich/data:/usr/src/app/upload
+#      - /data/OneDrive/Pictures/Family Pics:/photos
+#      - /etc/localtime:/etc/localtime:ro
+#    environment:
+#      - DB_HOSTNAME=immich-postgres
+#      - DB_USERNAME=immich
+#      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
+#      - DB_DATABASE_NAME=immich
+#      - REDIS_HOSTNAME=immich-redis
+#      - TZ=${TZ}
+#    depends_on:
+#      - immich-redis
+#      - immich-postgres
+#    networks:
+#      - media
+ 
+#  immich-machine-learning:
+#    image: ghcr.io/immich-app/immich-machine-learning:release
+#    container_name: immich-machine-learning
+#    restart: unless-stopped
+#    volumes:
+#      - ./immich/ml-cache:/cache
+#    environment:
+#      - TZ=${TZ}
+#    networks:
+#      - media
+ 
+#  immich-redis:
+#    image: redis:7-alpine
+#    container_name: immich-redis
+#    restart: unless-stopped
+#    volumes:
+#      - ./immich/redis:/data
+#    networks:
+#      - media
+ 
+#  immich-postgres:
+#    image: tensorchord/pgvecto-rs:pg16-v0.2.0
+#    container_name: immich-postgres
+#    restart: unless-stopped
+#    environment:
+#      - POSTGRES_USER=immich
+#      - POSTGRES_PASSWORD=${IMMICH_DB_PASSWORD}
+#      - POSTGRES_DB=immich
+#      - POSTGRES_INITDB_ARGS=--data-checksums
+#    volumes:
+#      - ./immich/postgres:/var/lib/postgresql/data
+#    networks:
+#      - media
+
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    ports:
+      - "8085:8080"
+    volumes:
+      - ./sabnzbd:/config
+      - /mnt/media:/data
+    restart: unless-stopped
+    networks:
+      - media
+
+  glance:
+    image: glanceapp/glance
+    container_name: glance
+    restart: unless-stopped
+    ports:
+      - 8081:8080
+    volumes:
+      - ./glance/config:/app/config
+      - ./glance/assets:/app/assets
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    env_file: .env
+
 
 networks:
   media:
