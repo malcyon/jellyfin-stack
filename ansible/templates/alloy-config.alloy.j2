@@ -55,6 +55,14 @@ prometheus.scrape "cadvisor" {
   job_name        = "cadvisor"
 }
 
+// ===== Pi-hole metrics =====
+prometheus.scrape "pihole" {
+  targets         = [{"__address__" = "localhost:9617"}]
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+  scrape_interval = "60s"
+  job_name        = "pihole"
+}
+
 // ===== Docker container logs =====
 discovery.docker "containers" {
   host = "unix:///var/run/docker.sock"
