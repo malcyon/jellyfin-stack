@@ -172,6 +172,22 @@ Then re-run the Ansible playbook to re-apply API keys and managed configs on top
 ansible-playbook -i ansible/inventory.yml ansible/playbook.yml
 ```
 
+**After migration — suppress the Jellyfin setup wizard:**
+
+The migrated database has your existing users, but Jellyfin may still show the setup wizard because `system.xml` was reset. Fix it directly on the media server:
+
+```bash
+ssh media "sed -i 's/<IsStartupWizardCompleted>false<\/IsStartupWizardCompleted>/<IsStartupWizardCompleted>true<\/IsStartupWizardCompleted>/' ~/src/jellyfin-stack/jellyfin/system.xml && docker restart jellyfin"
+```
+
+**If `git pull` on the media server complains about `system.xml`:**
+
+This happens once after the first migration because `system.xml` was previously tracked in git. Discard the tracked version and pull:
+
+```bash
+git checkout -- jellyfin/system.xml && git pull
+```
+
 If you ran the migration script, skip the Jellyfin wizard, Radarr/Sonarr/Prowlarr restore, and Seerr setup steps below — your data is already there.
 
 ---
