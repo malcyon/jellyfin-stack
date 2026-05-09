@@ -124,13 +124,23 @@ ansible-vault edit ansible/group_vars/media_servers/vault.yml
 
 ## Step 5 — Run the playbook
 
-From the repo root:
+Store your vault password in a local file so you don't have to enter it on every run:
 
 ```bash
-ansible-playbook -i ansible/inventory.yml ansible/playbook.yml --ask-vault-pass --ask-become-pass
+mkdir -p ~/.ansible
+echo 'your-vault-password' > ~/.ansible/vault_pass
+chmod 600 ~/.ansible/vault_pass
 ```
 
-Enter your vault password when prompted. The playbook will:
+`ansible.cfg` in the repo root already points Ansible to this file automatically.
+
+Then run the playbook from the repo root:
+
+```bash
+ansible-playbook -i ansible/inventory.yml ansible/playbook.yml
+```
+
+The playbook will:
 1. Set up Docker and system dependencies
 2. Clone the repo to the server
 3. Deploy all service configs from vault
@@ -148,7 +158,7 @@ These must be done through each service's web UI after the first boot.
 
 **Cutover order matters — follow these steps in sequence.**
 
-1. Verify Pi-hole is up by opening `http://192.168.1.182:8888` — you should see the admin UI. No DNS is required for this step since you're using the IP directly.
+1. Verify Pi-hole is up by opening `http://192.168.1.182:8888/admin` — you should see the admin UI. No DNS is required for this step since you're using the IP directly.
 2. In Pi-hole, enable DHCP: **Settings → DHCP** — set your router's IP as the gateway.
 3. Add DNS records: `morton.lan → 192.168.1.182`, plus individual records for each subdomain (or a wildcard `*.morton.lan`).
 4. Disable DHCP on the AT&T router.

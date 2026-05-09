@@ -76,6 +76,12 @@
     opts: defaults,nofail
     state: present
 
+- name: Create systemd-resolved config directory
+  ansible.builtin.file:
+    path: /etc/systemd/resolved.conf.d
+    state: directory
+    mode: "0755"
+
 - name: Disable systemd-resolved stub listener for Pi-hole
   ansible.builtin.copy:
     dest: /etc/systemd/resolved.conf.d/no-stub.conf

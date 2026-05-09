@@ -121,5 +121,4 @@
   ansible.builtin.command:
     cmd: docker compose up -d
     chdir: "{{ stack_path }}"
-  become_user: "{{ stack_user }}"
   changed_when: true
