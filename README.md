@@ -16,7 +16,6 @@ The stack is deployed with Docker Compose and provisioned via Ansible. See [ansi
 | [SABnzbd](https://github.com/sabnzbd/sabnzbd) | Usenet downloader |
 | [qBittorrent](https://github.com/qbittorrent/qBittorrent) | Torrent downloader |
 | [Gluetun](https://github.com/qdm12/gluetun) | VPN client (WireGuard) |
-| [Bazarr](https://github.com/morpheus65535/bazarr) | Subtitle management |
 | [Pi-hole](https://github.com/pi-hole/pi-hole) | DNS and DHCP server |
 | [nginx-proxy-manager](https://github.com/NginxProxyManager/nginx-proxy-manager) | Reverse proxy |
 | [Homepage](https://github.com/gethomepage/homepage) | Dashboard |
