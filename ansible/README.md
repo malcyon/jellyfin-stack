@@ -119,11 +119,17 @@ Enter your vault password when prompted. The playbook will:
 These must be done through each service's web UI after the first boot.
 
 ### Pi-hole
-1. Open Pi-hole admin at `http://192.168.1.182:8888`
-2. Add a DNS record: `morton.lan → 192.168.1.182`
-3. Add individual records or a wildcard for each subdomain
-4. Go to your router and **disable its built-in DHCP server**
-5. Enable DHCP in Pi-hole (Settings → DHCP)
+
+**Cutover order matters — follow these steps in sequence.**
+
+1. Verify Pi-hole is up by opening `http://192.168.1.182:8888` — you should see the admin UI. No DNS is required for this step since you're using the IP directly.
+2. In Pi-hole, enable DHCP: **Settings → DHCP** — set your router's IP as the gateway.
+3. Add DNS records: `morton.lan → 192.168.1.182`, plus individual records for each subdomain (or a wildcard `*.morton.lan`).
+4. Disable DHCP on the AT&T router.
+5. On your laptop, disconnect and reconnect to WiFi — it should pick up a new lease from Pi-hole.
+6. Validate: run `nslookup google.com` in a terminal — if the response shows `Server: 192.168.1.182`, Pi-hole is handling your DNS. The admin dashboard query counter will also start climbing as devices make requests.
+
+> **Safety net:** If anything goes wrong, re-enable DHCP on the AT&T router and you're immediately back to normal. Disabling DHCP on the router doesn't break existing devices right away — they keep their current leases until they expire or reconnect, so you won't lose internet the moment you flip the switch.
 
 ### nginx-proxy-manager
 1. Open npm at `http://192.168.1.182:81` (default login: `admin@example.com` / `changeme`)
