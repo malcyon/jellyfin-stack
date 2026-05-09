@@ -15,6 +15,9 @@ sabnzbd/**
 bazarr/**
 nginx/**
 pihole/**
+!pihole/
+!pihole/etc-dnsmasq.d/
+!pihole/etc-dnsmasq.d/02-local-reservations.conf
 degoog/**
 immich/**
 homepage/logs/**

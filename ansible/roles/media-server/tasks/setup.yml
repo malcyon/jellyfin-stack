@@ -94,3 +94,10 @@
       DNSStubListener=no
     mode: "0644"
   notify: Restart systemd-resolved
+
+- name: Configure static IP via Netplan
+  ansible.builtin.template:
+    src: netplan-static.yaml.j2
+    dest: /etc/netplan/00-installer-config.yaml
+    mode: "0600"
+  notify: Apply Netplan

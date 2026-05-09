@@ -1,0 +1,20 @@
+# Managed by Ansible — do not edit manually
+network:
+  version: 2
+  ethernets:
+    {{ network_interface }}:
+      dhcp4: false
+      dhcp6: false
+      match:
+        macaddress: {{ interface_mac }}
+      set-name: {{ network_interface }}
+      addresses:
+        - {{ static_ip }}/{{ static_ip_prefix }}
+      routes:
+        - to: default
+          via: {{ gateway_ip }}
+      nameservers:
+        addresses:
+          - 1.1.1.1
+          - 8.8.8.8
+  wifis: {}

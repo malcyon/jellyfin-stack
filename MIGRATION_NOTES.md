@@ -62,7 +62,7 @@ All differences resolved. ✅
 | 6 | `/data` volume doesn't exist on new server | ✅ Removed from `docker-compose.yml` and `homepage/widgets.yaml` |
 | 7 | `HOMEPAGE_ALLOWED_HOSTS` hardcoded to `192.168.1.181` | ✅ Moved to `.env` / `env.j2`; set per-host in `vars.yml` |
 | 8 | `encoding.xml` has `/dev/dri/renderD128` VA-API path | ✅ Same path exists on new server — no change needed |
-| 9 | New server IP is DHCP | ✅ Both IPs reserved in router (home=.181, media=.182) |
+| 9 | New server IP is DHCP | ✅ Static IP configured via Netplan (`enp3s0`, `192.168.1.182/24`, gw `192.168.1.254`); managed by Ansible template `netplan-static.yaml.j2` |
 
 ---
 
@@ -157,6 +157,15 @@ Docker container (`ekofr/pihole-exporter:latest`) running with `network_mode: ho
 ---
 
 ## Home PC Configuration
+
+### Static IP on media server
+
+The media server (`192.168.1.182`) is configured with a static IP via Netplan, bypassing DHCP entirely. This prevents boot failures caused by Pi-hole DHCP not yet being ready when the server starts.
+
+Managed by Ansible template `ansible/templates/netplan-static.yaml.j2`, deployed to `/etc/netplan/00-installer-config.yaml` on the media server. Variables in `ansible/group_vars/media_servers/vars.yml`:
+- Interface: `enp3s0` (MAC `34:17:eb:ca:54:71`)
+- IP: `192.168.1.182/24`, gateway `192.168.1.254`
+- DNS: `1.1.1.1`, `8.8.8.8` (public — Pi-hole handles LAN DNS for clients, not the server itself)
 
 ### SSHFS mount for `/mnt/media`
 The home PC (`home` / 192.168.1.181) mounts the media server's `/mnt/media` locally at `/mnt/media` via SSHFS, allowing the file manager to browse and reorganize media files directly.
