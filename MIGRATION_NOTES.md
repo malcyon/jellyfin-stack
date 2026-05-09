@@ -218,12 +218,6 @@ Secure access to the stack from outside the LAN without port forwarding:
 
 ---
 
-## Ansible Playbook: Outstanding Tasks
-
-All tasks complete. ✅
-
----
-
 ## Service Reconfiguration Checklist (post-deploy, manual)
 
 These must be done through each service's web UI after first boot:
