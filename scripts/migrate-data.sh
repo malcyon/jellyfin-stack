@@ -16,7 +16,10 @@ STACK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEST="${1:-donald@media}"
 DEST_STACK="${2:-/home/donald/src/jellyfin-stack}"
 WORK="$(mktemp -d)"
+CLEANED=0
 cleanup() {
+  [[ "$CLEANED" -eq 1 ]] && return
+  CLEANED=1
   if [[ -n "$WORK" && "$WORK" != "/" ]]; then
     rm -rf "$WORK"
   fi
