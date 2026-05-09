@@ -127,7 +127,7 @@ ansible-vault edit ansible/group_vars/media_servers/vault.yml
 From the repo root:
 
 ```bash
-ansible-playbook -i ansible/inventory.yml ansible/playbook.yml --ask-vault-pass
+ansible-playbook -i ansible/inventory.yml ansible/playbook.yml --ask-vault-pass --ask-become-pass
 ```
 
 Enter your vault password when prompted. The playbook will:
