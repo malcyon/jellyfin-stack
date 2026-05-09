@@ -3,6 +3,17 @@
 Automates the setup of a Jellyfin media server.
 
 
+## Prerequisites
+
+Install Ansible and the required collection on your local machine:
+
+```bash
+pip install --user ansible
+ansible-galaxy collection install ansible.posix
+```
+
+---
+
 ## Step 1 — Configure the inventory
 
 Edit `ansible/inventory.yml` and set the server's IP address:
@@ -62,6 +73,12 @@ Edit `vault.yml` and fill in every `REPLACE_ME` value:
 | `vault_sabnzbd_server_username` | Your newsgroup provider username |
 | `vault_sabnzbd_server_password` | Your newsgroup provider password |
 | `vault_qbittorrent_password_hash` | Value of `WebUI\Password_PBKDF2` in `qbittorrent/qBittorrent/qBittorrent.conf` (without surrounding quotes) |
+| `vault_seerr_client_id` | `clientId` from `seerr/settings.json` |
+| `vault_seerr_session_secret` | `sessionSecret` from `seerr/settings.json` |
+| `vault_seerr_vapid_private` | `vapidPrivate` from `seerr/settings.json` |
+| `vault_seerr_vapid_public` | `vapidPublic` from `seerr/settings.json` |
+| `vault_seerr_jellyfin_api_key` | `jellyfin.apiKey` from `seerr/settings.json` (distinct from `vault_jellyfin_api_key`) |
+| `vault_pihole_webpassword` | Choose a password for the Pi-hole web UI |
 
 Once all values are filled in, encrypt the file:
 

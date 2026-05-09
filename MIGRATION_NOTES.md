@@ -50,30 +50,19 @@
 
 ## Differences to Resolve
 
-### Must fix before `docker compose up`
+All differences resolved. ✅
 
 | # | Issue | Fix |
 |---|---|---|
-| 1 | `media` group (GID=1001) missing | Ansible: `group` task + add donald |
-| 2 | Docker not installed | Ansible: Docker CE install |
-| 3 | Ubuntu 26.04 Docker apt repo | Verify `resolute` codename is in Docker's repo; fall back to `noble` packages if not |
-| 4 | `/mnt/media` doesn't exist | Ansible: create dir + fstab entry (UUID `3b3a4cb8`) |
-| 5 | systemd-resolved stub on port 53 | Ansible: disable `DNSStubListener` before Pi-hole starts |
-
-### Config changes needed
-
-| # | Issue | Fix |
-|---|---|---|
-| 6 | `/data` volume doesn't exist on new server | ✅ Done — removed from `docker-compose.yml` and `homepage/widgets.yaml` |
-| 7 | `HOMEPAGE_ALLOWED_HOSTS` has hardcoded IP `192.168.1.181` | Move to `.env` as `HOMEPAGE_ALLOWED_HOSTS`; Ansible sets it per-host |
-| 8 | `encoding.xml` has `/dev/dri/renderD128` VA-API path | Same path exists on new server — no change needed |
-
-### Nice to have
-
-| # | Issue | Notes |
-|---|---|---|
-| 9 | New server IP is DHCP | ✅ Done — both IPs are reserved in router (home=192.168.1.181, media=192.168.1.182) |
-| 10 | Ansible not installed | `pip install --user ansible` on this machine before running playbook |
+| 1 | `media` group (GID=1001) missing | ✅ Ansible: `group` task + add donald |
+| 2 | Docker not installed | ✅ Ansible: Docker CE install (pinned to `noble` repo) |
+| 3 | Ubuntu 26.04 Docker apt repo | ✅ Hardcoded `noble` codename — `resolute` not yet in Docker's repo |
+| 4 | `/mnt/media` doesn't exist | ✅ Ansible: create dir + fstab entry (UUID `3b3a4cb8`) |
+| 5 | systemd-resolved stub on port 53 | ✅ Ansible: `DNSStubListener=no` drop-in + handler restart |
+| 6 | `/data` volume doesn't exist on new server | ✅ Removed from `docker-compose.yml` and `homepage/widgets.yaml` |
+| 7 | `HOMEPAGE_ALLOWED_HOSTS` hardcoded to `192.168.1.181` | ✅ Moved to `.env` / `env.j2`; set per-host in `vars.yml` |
+| 8 | `encoding.xml` has `/dev/dri/renderD128` VA-API path | ✅ Same path exists on new server — no change needed |
+| 9 | New server IP is DHCP | ✅ Both IPs reserved in router (home=.181, media=.182) |
 
 ---
 
