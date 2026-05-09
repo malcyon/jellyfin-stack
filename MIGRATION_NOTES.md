@@ -131,14 +131,63 @@ Then: `systemctl restart systemd-resolved`
 
 ---
 
-## Future Work
+## Services Added Post-Migration
 
-### One-time migration script (`migrate.sh`)
-A script to run on the home server before migration. Should:
-- Trigger a fresh backup via each service's API (`POST /api/v3/command {"name":"Backup"}`) for Radarr, Sonarr, and Prowlarr
-- Wait for backups to complete, then collect the latest zip from each `*/Backups/scheduled/` directory
-- Bundle them into a tarball for manual `scp` to the new server
-- User places the zips in the right dirs on new server (after first `docker compose up`), then restores via each service's UI
+### Grafana Alloy (monitoring agent)
+Native systemd service (not Docker), installed via Grafana apt repo. Ships metrics and logs to Grafana Cloud.
+
+| Component | What it collects |
+|---|---|
+| `prometheus.exporter.unix` | Host/node metrics (CPU, memory, disk, network). Job: `integrations/unix` |
+| `prometheus.exporter.cadvisor` | Docker container resource metrics. Job: `integrations/cadvisor` |
+| `loki.source.docker` | Docker container stdout/stderr logs |
+| `loki.source.journal` | systemd journal logs |
+
+**Key implementation notes:**
+- `containerd_host` must be the raw socket path `/run/containerd/containerd.sock` — using the `unix:///` URI prefix causes Go to treat it as a relative path and fail with "no such file or directory"
+- containerd socket must be `root:docker 0660` — Ansible task sets this immediately; a systemd drop-in (`/etc/systemd/system/containerd.service.d/docker-group-socket.conf`) persists the permission on containerd restarts
+- Do not set `containerd_namespace = "moby"` — this causes the containerd factory to claim Docker containers before the Docker factory can, resulting in container IDs instead of human-readable names as the `name` metric label
+
+### Pi-hole Exporter
+Docker container (`ekofr/pihole-exporter:latest`) running with `network_mode: host` so it can reach Pi-hole's API on `localhost:8888`. Alloy scrapes it at `localhost:9617` with `job="pihole"`.
+
+- Uses `PIHOLE_PASSWORD` env var (Pi-hole v6 authentication)
+- Dashboard imported from grafana.com: search "Pi-hole Exporter" by eko
+
+---
+
+## Home PC Configuration
+
+### SSHFS mount for `/mnt/media`
+The home PC (`home` / 192.168.1.181) mounts the media server's `/mnt/media` locally at `/mnt/media` via SSHFS, allowing the file manager to browse and reorganize media files directly.
+
+Managed by a systemd mount unit at `/etc/systemd/system/mnt-media.mount`. Mounts automatically after network is up on boot.
+
+**Prerequisites on home PC:**
+- `sshfs` installed (`sudo apt install sshfs`)
+- `user_allow_other` uncommented in `/etc/fuse.conf`
+- Server's host key in `/root/.ssh/known_hosts` (`sudo ssh-keyscan 192.168.1.182 | sudo tee -a /root/.ssh/known_hosts`)
+
+**Unit file:** `/etc/systemd/system/mnt-media.mount`
+```ini
+[Unit]
+Description=Media server SSHFS mount
+After=network-online.target
+Wants=network-online.target
+
+[Mount]
+What=donald@192.168.1.182:/mnt/media
+Where=/mnt/media
+Type=fuse.sshfs
+Options=_netdev,idmap=user,uid=1000,gid=1000,IdentityFile=/home/donald/.ssh/id_ed25519,allow_other,reconnect,ServerAliveInterval=15,ServerAliveCountMax=3
+
+[Install]
+WantedBy=multi-user.target
+```
+
+---
+
+## Future Work
 
 ### Ongoing stack backup/restore (`backup.sh` / `restore.sh`)
 Scripts for routine backup and disaster recovery of the entire stack. Design TBD.
