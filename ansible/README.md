@@ -8,7 +8,14 @@ Automates the setup of a Jellyfin media server.
 Install Ansible and the required collection on your local machine:
 
 ```bash
-pip install --user ansible
+sudo apt install pipx
+pipx install ansible
+pipx ensurepath
+```
+
+Open a new terminal so the PATH update takes effect, then install the required collection:
+
+```bash
 ansible-galaxy collection install ansible.posix
 ```
 
