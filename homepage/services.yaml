@@ -4,7 +4,7 @@
 
 - Media:
     - Jellyfin:
-        href: http://home.local:8096
+        href: http://jellyfin.morton.lan
         description: Watch movies and shows
         widget:
           type: jellyfin
@@ -13,35 +13,35 @@
           enableBlocks: true
           enableNowPlaying: false
     - Seerr:
-        href: http://home.local:5055
+        href: http://seerr.morton.lan
         description: Request movies and TV
         widget:
           type: seerr
           url: http://seerr:5055
           key: "{{HOMEPAGE_VAR_SEERR_KEY}}"
     - Prowlarr:
-        href: http://home.local:9696
+        href: http://prowlarr.morton.lan
         description: Indexers
     - qBittorrent:
-        href: http://home.local:8080
+        href: http://qbit.morton.lan
         description: Downloads
     - Nginx Proxy Manager:
-        href: http://home.local:81
+        href: http://192.168.1.182:81
         description: Reverse proxy
     - SABnzbd:
-        href: http://home.local:8085
+        href: http://sabnzbd.morton.lan
         description: Newsgroups
 - Apps:
   - Glance:
-      href: http://home.local:8081
-      description: Dashboard 
+      href: http://glance.morton.lan
+      description: Dashboard
   - WeatherBug:
       href: https://www.weatherbug.com/weather-forecast/hourly/fayetteville-ar-72701?tu=1&pu=1&wsu=1
       description: Weather Forecast
 
 - Downloads:
     - Radarr:
-        href: http://home.local:7878
+        href: http://radarr.morton.lan
         description: Movies management
         widget:
           type: radarr
@@ -49,7 +49,7 @@
           key: "{{HOMEPAGE_VAR_RADARR_KEY}}"
           enableQueue: true
     - Sonarr:
-        href: http://home.local:8989
+        href: http://sonarr.morton.lan
         description: TV management
         widget:
           type: sonarr
