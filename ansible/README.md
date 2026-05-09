@@ -150,7 +150,33 @@ The playbook will:
 
 ---
 
-## Step 6 — Post-deploy manual steps
+## Step 6 — Migrate data from an existing installation (optional)
+
+If you are migrating from an existing machine rather than starting fresh, run the migration script **after** the playbook completes. It copies databases and metadata for Jellyfin, Radarr, Sonarr, Prowlarr, and Seerr — including all user accounts, passwords, watch history, libraries, quality profiles, and request history.
+
+From the repo root on the **source** machine:
+
+```bash
+./scripts/migrate-data.sh
+```
+
+The script will:
+1. Stop the relevant services on the source machine
+2. Archive their data directories (excluding Ansible-managed config files)
+3. Upload the archives to the media server
+4. Stop, extract, and restart services on the media server
+
+Then re-run the Ansible playbook to re-apply API keys and managed configs on top of the restored data:
+
+```bash
+ansible-playbook -i ansible/inventory.yml ansible/playbook.yml
+```
+
+If you ran the migration script, skip the Jellyfin wizard, Radarr/Sonarr/Prowlarr restore, and Seerr setup steps below — your data is already there.
+
+---
+
+## Step 7 — Post-deploy manual steps
 
 These must be done through each service's web UI after the first boot.
 
@@ -185,27 +211,30 @@ These must be done through each service's web UI after the first boot.
 | `glance.morton.lan` | `glance:8080` |
 
 ### Jellyfin
-- Run the setup wizard; add your media library pointing to `/data/movies`, `/data/tv`, etc.
-- Let it scan (the USB drive must be plugged in and mounted at `/mnt/media`)
+- **If you ran the migration script:** skip the wizard — your users, libraries, and watch history are already restored. Just verify the service loads at `jellyfin.morton.lan` and trigger a library scan if needed.
+- **Fresh install:** run the setup wizard; add your media library pointing to `/data/movies`, `/data/tv`, etc. and let it scan.
+- The USB drive must be plugged in and mounted at `/mnt/media` before scanning.
 
 ### Radarr
 - Ansible pre-seeds the API key so homepage and Prowlarr connections work immediately
-- Restore full config: **Settings → Backup → Restore** — use the latest zip from `radarr/Backups/scheduled/` (copy it to the server first with `scp`)
-- This restores quality profiles, root folders, download client settings, and movie library
+- **If you ran the migration script:** quality profiles, root folders, download client settings, and movie library are already restored — no further action needed.
+- **Fresh install:** restore from backup: **Settings → Backup → Restore** — use the latest zip from `radarr/Backups/scheduled/` (copy it to the server first with `scp`)
 
 ### Sonarr
-- Same restore process as Radarr — backup zips are in `sonarr/Backups/scheduled/`
+- **If you ran the migration script:** skip — data already restored.
+- **Fresh install:** same restore process as Radarr — backup zips are in `sonarr/Backups/scheduled/`
 
 ### Prowlarr
-- Same restore process — backup zips are in `prowlarr/Backups/scheduled/`
-- After restore, trigger a manual indexer sync in Radarr and Sonarr: **Settings → Indexers → Sync App Indexers**
+- **If you ran the migration script:** skip — data already restored. Trigger a manual indexer sync in Radarr and Sonarr: **Settings → Indexers → Sync App Indexers**
+- **Fresh install:** same restore process — backup zips are in `prowlarr/Backups/scheduled/`, then sync indexers as above.
 
 ### SABnzbd & qBittorrent
 - Ansible deploys full configs — no manual setup required
 - Verify downloads land in `/data/downloads/` correctly
 
 ### Seerr
-- Connect to Jellyfin, Radarr, and Sonarr through the setup wizard
+- **If you ran the migration script:** users and request history are already restored — skip the wizard.
+- **Fresh install:** connect to Jellyfin, Radarr, and Sonarr through the setup wizard.
 
 ### Bazarr
 - Connect to Sonarr and Radarr; configure subtitle providers
