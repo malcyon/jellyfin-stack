@@ -26,7 +26,6 @@ The stack is deployed with Docker Compose and provisioned via Ansible. See [ansi
 ### Services to add
 | Service | Purpose | Notes |
 |---|---|---|
-| **Graylog** | Centralized log aggregation | Requires MongoDB + Elasticsearch/OpenSearch; resource-heavy |
 | **FreshRSS** | Self-hosted RSS reader | Lightweight, easy to add |
 | **Nextcloud** (or alternative) | Shared filesystem / cloud storage | Heavy; Seafile is a lighter alternative |
 | **Tdarr / Fileflows / Unmanic** | Automated media transcoding — add AAC audio tracks | Evaluate which fits workflow best |

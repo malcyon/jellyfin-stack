@@ -1,0 +1,100 @@
+// ===== Grafana Cloud: Prometheus remote write =====
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = "{{ vault_grafana_cloud_prometheus_url }}"
+
+    basic_auth {
+      username = "{{ vault_grafana_cloud_prometheus_username }}"
+      password = "{{ vault_grafana_cloud_api_key }}"
+    }
+  }
+
+  external_labels = {
+    host = constants.hostname,
+  }
+}
+
+// ===== Grafana Cloud: Loki write =====
+loki.write "grafana_cloud" {
+  endpoint {
+    url = "{{ vault_grafana_cloud_loki_url }}"
+
+    basic_auth {
+      username = "{{ vault_grafana_cloud_loki_username }}"
+      password = "{{ vault_grafana_cloud_api_key }}"
+    }
+  }
+
+  external_labels = {
+    host = constants.hostname,
+  }
+}
+
+// ===== Host / node metrics =====
+prometheus.exporter.unix "node" {
+  disable_collectors = ["thermal_zone"]
+}
+
+prometheus.scrape "node" {
+  targets         = prometheus.exporter.unix.node.targets
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+  scrape_interval = "60s"
+  job_name        = "node"
+}
+
+// ===== Docker container resource metrics (cAdvisor) =====
+prometheus.exporter.cadvisor "docker" {
+  docker_host      = "unix:///var/run/docker.sock"
+  containerd_host  = ""
+}
+
+prometheus.scrape "cadvisor" {
+  targets         = prometheus.exporter.cadvisor.docker.targets
+  forward_to      = [prometheus.remote_write.grafana_cloud.receiver]
+  scrape_interval = "60s"
+  job_name        = "cadvisor"
+}
+
+// ===== Docker container logs =====
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "docker_logs" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_image"]
+    target_label  = "image"
+  }
+}
+
+loki.source.docker "containers" {
+  host       = "unix:///var/run/docker.sock"
+  targets    = discovery.relabel.docker_logs.output
+  forward_to = [loki.write.grafana_cloud.receiver]
+}
+
+// ===== System journal logs =====
+loki.source.journal "system" {
+  forward_to    = [loki.write.grafana_cloud.receiver]
+  relabel_rules = loki.relabel.journal.rules
+  labels = {
+    job = "systemd-journal",
+  }
+}
+
+loki.relabel "journal" {
+  forward_to = []
+
+  rule {
+    source_labels = ["__journal__systemd_unit"]
+    target_label  = "unit"
+  }
+}

@@ -36,5 +36,11 @@ vault_bazarr_opensubtitles_password: REPLACE_ME
 
 vault_pihole_webpassword: REPLACE_ME
 
+vault_grafana_cloud_prometheus_url: REPLACE_ME      # Grafana Cloud → your stack → Details → Prometheus → Remote Write Endpoint
+vault_grafana_cloud_prometheus_username: REPLACE_ME # Numeric username shown on the same page
+vault_grafana_cloud_loki_url: REPLACE_ME            # Grafana Cloud → your stack → Details → Loki → URL (append /loki/api/v1/push)
+vault_grafana_cloud_loki_username: REPLACE_ME       # Numeric username shown on the same page
+vault_grafana_cloud_api_key: REPLACE_ME             # Service account token — Administration → Service Accounts → Add token
+
 # Uncomment if enabling Immich
 # vault_immich_db_password: REPLACE_ME

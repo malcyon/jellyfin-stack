@@ -73,69 +73,68 @@
     dest: "{{ stack_path }}/.env"
     owner: "{{ stack_user }}"
     mode: "0600"
-    backup: true
 
-- name: Deploy radarr config.xml from vault
-  ansible.builtin.template:
-    src: "{{ playbook_dir }}/templates/radarr-config.xml.j2"
+- name: Deploy radarr config.xml from vault (initial setup only)
+  ansible.builtin.copy:
+    content: "{{ lookup('template', playbook_dir ~ '/templates/radarr-config.xml.j2') }}"
     dest: "{{ stack_path }}/radarr/config.xml"
     owner: "{{ stack_user }}"
     mode: "0644"
-    backup: true
+    force: false
   notify: Restart radarr
 
-- name: Deploy sonarr config.xml from vault
-  ansible.builtin.template:
-    src: "{{ playbook_dir }}/templates/sonarr-config.xml.j2"
+- name: Deploy sonarr config.xml from vault (initial setup only)
+  ansible.builtin.copy:
+    content: "{{ lookup('template', playbook_dir ~ '/templates/sonarr-config.xml.j2') }}"
     dest: "{{ stack_path }}/sonarr/config.xml"
     owner: "{{ stack_user }}"
     mode: "0644"
-    backup: true
+    force: false
   notify: Restart sonarr
 
-- name: Deploy prowlarr config.xml from vault
-  ansible.builtin.template:
-    src: "{{ playbook_dir }}/templates/prowlarr-config.xml.j2"
+- name: Deploy prowlarr config.xml from vault (initial setup only)
+  ansible.builtin.copy:
+    content: "{{ lookup('template', playbook_dir ~ '/templates/prowlarr-config.xml.j2') }}"
     dest: "{{ stack_path }}/prowlarr/config.xml"
     owner: "{{ stack_user }}"
     mode: "0644"
-    backup: true
+    force: false
   notify: Restart prowlarr
 
-- name: Deploy sabnzbd.ini from vault
-  ansible.builtin.template:
-    src: "{{ playbook_dir }}/templates/sabnzbd.ini.j2"
+- name: Deploy sabnzbd.ini from vault (initial setup only)
+  ansible.builtin.copy:
+    content: "{{ lookup('template', playbook_dir ~ '/templates/sabnzbd.ini.j2') }}"
     dest: "{{ stack_path }}/sabnzbd/sabnzbd.ini"
     owner: "{{ stack_user }}"
     mode: "0600"
-    backup: true
+    force: false
   notify: Restart sabnzbd
 
-- name: Deploy qBittorrent.conf from vault
-  ansible.builtin.template:
-    src: "{{ playbook_dir }}/templates/qbittorrent.conf.j2"
+- name: Deploy qBittorrent.conf from vault (initial setup only)
+  ansible.builtin.copy:
+    content: "{{ lookup('template', playbook_dir ~ '/templates/qbittorrent.conf.j2') }}"
     dest: "{{ stack_path }}/qbittorrent/qBittorrent/qBittorrent.conf"
     owner: "{{ stack_user }}"
     mode: "0600"
-    backup: true
+    force: false
   notify: Restart qbittorrent
 
-- name: Deploy seerr settings.json from vault
-  ansible.builtin.template:
-    src: "{{ playbook_dir }}/templates/seerr-settings.json.j2"
+- name: Deploy seerr settings.json from vault (initial setup only)
+  ansible.builtin.copy:
+    content: "{{ lookup('template', playbook_dir ~ '/templates/seerr-settings.json.j2') }}"
     dest: "{{ stack_path }}/seerr/settings.json"
     owner: "{{ stack_user }}"
     mode: "0600"
-    backup: true
+    force: false
   notify: Restart seerr
 
-- name: Deploy bazarr config.yaml from vault
-  ansible.builtin.template:
-    src: "{{ playbook_dir }}/templates/bazarr-config.yaml.j2"
+- name: Deploy bazarr config.yaml from vault (initial setup only)
+  ansible.builtin.copy:
+    content: "{{ lookup('template', playbook_dir ~ '/templates/bazarr-config.yaml.j2') }}"
     dest: "{{ stack_path }}/bazarr/config/config.yaml"
     owner: "{{ stack_user }}"
     mode: "0600"
-    backup: true
+    force: false
   notify: Restart bazarr
 
 # --- Start stack ---

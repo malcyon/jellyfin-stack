@@ -105,6 +105,11 @@ Edit `vault.yml` and fill in every `REPLACE_ME` value:
 | `vault_seerr_vapid_public` | `vapidPublic` from `seerr/settings.json` |
 | `vault_seerr_jellyfin_api_key` | `jellyfin.apiKey` from `seerr/settings.json` (distinct from `vault_jellyfin_api_key`) |
 | `vault_pihole_webpassword` | Choose a password for the Pi-hole web UI |
+| `vault_grafana_cloud_prometheus_url` | Grafana Cloud → your stack → Details → Prometheus → Remote Write Endpoint |
+| `vault_grafana_cloud_prometheus_username` | Numeric username shown on the same page |
+| `vault_grafana_cloud_loki_url` | Grafana Cloud → your stack → Details → Loki → URL (append `/loki/api/v1/push`) |
+| `vault_grafana_cloud_loki_username` | Numeric username shown on the same page |
+| `vault_grafana_cloud_api_key` | Grafana Cloud → Administration → Service Accounts → create a service account token |
 
 Once all values are filled in, encrypt the file:
 

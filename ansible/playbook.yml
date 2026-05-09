@@ -3,4 +3,7 @@
   hosts: media_servers
   become: true
   roles:
-    - media-server
+    - role: media-server
+      tags: media
+    - role: monitoring
+      tags: monitoring
