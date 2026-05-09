@@ -261,6 +261,41 @@ These must be done through each service's web UI after the first boot.
 
 ---
 
+## Step 8 — Verify the stack end-to-end
+
+Test in dependency order so each service is confirmed before testing those that depend on it.
+
+### gluetun / qBittorrent
+- Open `qbit.morton.lan` → **Settings → Advanced** → **Network Interface** should show `tun0` (VPN tunnel active)
+- **Settings → Downloads** → Default Save Path should be `/data/downloads/completed`
+
+### SABnzbd
+- Open `sabnzbd.morton.lan` → **Config → Servers** → click **Test Server** — should return "Connection successful"
+- **Config → General** → Completed Download Folder should be `/data/downloads/complete`
+
+### Prowlarr
+- Open `prowlarr.morton.lan` → **Indexers** — confirm indexers are present and tested
+- **Settings → Apps** — Radarr and Sonarr should show green/synced
+
+### Radarr / Sonarr
+- **Settings → Download Clients** — qBittorrent and SABnzbd should be green
+- **Settings → Root Folders** — `/data/movies` (Radarr) and `/data/shows` (Sonarr) should show available space
+- **Movies / Series** — libraries should be populated from the migration
+
+### Jellyfin
+- Open `jellyfin.morton.lan` → **Dashboard → Libraries** — correct item counts
+- Play a movie to confirm direct play works
+
+### Seerr
+- Open `seerr.morton.lan` → **Settings → Jellyfin** — server connected, libraries visible
+- **Settings → Services** — Radarr and Sonarr show green; use the test button to confirm
+- Make a test request — confirm it appears in Radarr or Sonarr and a download starts
+
+### Homepage
+- Open `morton.lan` — Jellyfin, Radarr, Sonarr, and Seerr widgets should all show live data
+
+---
+
 ## Vault reference
 
 All secrets are stored in `ansible/group_vars/media_servers/vault.yml` (encrypted).
