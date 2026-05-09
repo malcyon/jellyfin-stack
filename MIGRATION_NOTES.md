@@ -192,6 +192,30 @@ WantedBy=multi-user.target
 ### Ongoing stack backup/restore (`backup.sh` / `restore.sh`)
 Scripts for routine backup and disaster recovery of the entire stack. Design TBD.
 
+### RomM — Game library manager
+https://romm.app — ROM management with metadata, artwork, and a web UI. Would complement the media server as a self-hosted game library. Needs a volume for ROMs.
+
+### Video transcoding — Tdarr / FileFlows / Unmanic
+Automated transcoding pipeline to convert video files to AAC audio for better compatibility with mobile clients (Jellyfin on iOS/Android often can't direct play non-AAC audio). Options:
+- **Tdarr** — most mature, plugin-based, has a worker model
+- **FileFlows** — newer, flow-based UI, active development
+- **Unmanic** — simpler, lightweight
+All three can watch a folder and transcode in place or to a target directory.
+
+### FreshRSS — RSS feed aggregator
+Self-hosted RSS reader with a web UI and API compatible with most RSS apps (Reeder, NetNewsWire, etc.). Lightweight PHP app, single Docker container.
+
+### Shared notes — Obsidian Sync alternative
+Self-hosted sync backend for Obsidian or a standalone notes app. Options:
+- **Obsidian LiveSync** (self-hosted CouchDB backend) — keeps using Obsidian clients
+- **Silverbullet** — self-hosted wiki/notes with Markdown
+- **Joplin Server** — pairs with Joplin clients, supports end-to-end encryption
+
+### Remote access — Tailscale or Cloudflare Tunnel
+Secure access to the stack from outside the LAN without port forwarding:
+- **Tailscale** — WireGuard mesh VPN, zero-config, free tier covers personal use; access everything via LAN IPs over the tunnel
+- **Cloudflare Tunnel** — exposes specific services via Cloudflare's edge with no open ports; better for sharing individual services publicly
+
 ---
 
 ## Ansible Playbook: Outstanding Tasks
