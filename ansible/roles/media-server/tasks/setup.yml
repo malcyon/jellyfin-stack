@@ -76,6 +76,10 @@
     opts: defaults,nofail
     state: present
 
+- name: Reload systemd after fstab update
+  ansible.builtin.systemd:
+    daemon_reload: true
+
 - name: Create systemd-resolved config directory
   ansible.builtin.file:
     path: /etc/systemd/resolved.conf.d
