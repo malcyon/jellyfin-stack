@@ -4,6 +4,7 @@
     repo: "{{ repo_url }}"
     dest: "{{ stack_path }}"
     version: main
+    force: true
   become_user: "{{ stack_user }}"
 
 # --- Directory creation ---
