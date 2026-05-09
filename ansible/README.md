@@ -213,18 +213,19 @@ These must be done through each service's web UI after the first boot.
 1. Open npm at `http://192.168.1.182:81` (default login: `admin@example.com` / `changeme`)
 2. Create a proxy host for each service pointing to its container name and port:
 
-| Domain | Forward to |
-|---|---|
-| `morton.lan` | `homepage:3000` |
-| `jellyfin.morton.lan` | `jellyfin:8096` |
-| `seerr.morton.lan` | `seerr:5055` |
-| `radarr.morton.lan` | `radarr:7878` |
-| `sonarr.morton.lan` | `sonarr:8989` |
-| `prowlarr.morton.lan` | `prowlarr:9696` |
-| `sabnzbd.morton.lan` | `sabnzbd:8080` |
-| `qbit.morton.lan` | `qbittorrent:8080` |
-| `pihole.morton.lan` | `localhost:8888` |
-| `glance.morton.lan` | `glance:8080` |
+| Domain | Forward to | Notes |
+|---|---|---|
+| `morton.lan` | `homepage:3000` | |
+| `jellyfin.morton.lan` | `jellyfin:8096` | Enable Websockets Support |
+| `seerr.morton.lan` | `seerr:5055` | |
+| `radarr.morton.lan` | `radarr:7878` | |
+| `sonarr.morton.lan` | `sonarr:8989` | |
+| `prowlarr.morton.lan` | `prowlarr:9696` | |
+| `sabnzbd.morton.lan` | `sabnzbd:8080` | |
+| `qbit.morton.lan` | `gluetun:8080` | qBittorrent shares gluetun's network — use `gluetun`, not `qbittorrent` |
+| `pihole.morton.lan` | `192.168.1.182:8888` | Pi-hole uses host networking — use the host IP, not the container name |
+| `npm.morton.lan` | `nginx-proxy-manager:81` | |
+| `glance.morton.lan` | `glance:8080` | |
 
 ### Jellyfin
 - **If you ran the migration script:** skip the wizard — your users, libraries, and watch history are already restored. Just verify the service loads at `jellyfin.morton.lan` and trigger a library scan if needed.
