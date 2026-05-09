@@ -265,6 +265,8 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     env_file: .env
+    networks:
+      - media
 
 
 networks:
