@@ -1,6 +1,6 @@
 stack_user: donald
 stack_path: /home/donald/src/jellyfin-stack
-repo_url: https://github.com/malcyon/jellyfin-stack.git
+repo_url: git@github.com:malcyon/jellyfin-stack.git
 
 puid: 1000
 pgid: 1001

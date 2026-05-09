@@ -14,7 +14,32 @@ ansible-galaxy collection install ansible.posix
 
 ---
 
-## Step 1 — Configure the inventory
+## Step 1 — Set up GitHub SSH access on the media server
+
+The repo is private, so the media server needs its own SSH key authorized on GitHub.
+
+SSH into the media server and generate a key:
+
+```bash
+ssh media
+ssh-keygen -t ed25519 -C "media server"
+cat ~/.ssh/id_ed25519.pub
+```
+
+Copy the output and add it to your GitHub profile: **Settings → SSH and GPG keys → New SSH key**.
+
+Then accept GitHub's host key (required before Ansible runs, otherwise the git clone task will hang):
+
+```bash
+ssh -T git@github.com
+```
+
+Type `yes` when prompted. You should see `Hi malcyon! You've successfully authenticated...`
+
+---
+
+## Step 2 — Configure the inventory
+
 
 Edit `ansible/inventory.yml` and set the server's IP address:
 
@@ -32,7 +57,7 @@ ssh media
 
 ---
 
-## Step 2 — Review vars
+## Step 3 — Review vars
 
 Open `ansible/group_vars/media_servers/vars.yml`. The defaults match this stack's setup but review:
 
@@ -47,7 +72,7 @@ Open `ansible/group_vars/media_servers/vars.yml`. The defaults match this stack'
 
 ---
 
-## Step 3 — Create and encrypt the vault
+## Step 4 — Create and encrypt the vault
 
 The vault holds all secrets. **Never commit the plaintext vault file.**
 
@@ -96,7 +121,7 @@ ansible-vault edit ansible/group_vars/media_servers/vault.yml
 
 ---
 
-## Step 4 — Run the playbook
+## Step 5 — Run the playbook
 
 From the repo root:
 
@@ -114,7 +139,7 @@ Enter your vault password when prompted. The playbook will:
 
 ---
 
-## Step 5 — Post-deploy manual steps
+## Step 6 — Post-deploy manual steps
 
 These must be done through each service's web UI after the first boot.
 
