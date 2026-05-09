@@ -1,0 +1,86 @@
+---
+- name: Install apt prerequisites
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - git
+    state: present
+    update_cache: true
+
+- name: Create /etc/apt/keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Download Docker GPG key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Get DEB architecture
+  ansible.builtin.command: dpkg --print-architecture
+  register: deb_arch
+  changed_when: false
+
+- name: Add Docker apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [arch={{ deb_arch.stdout }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable"
+    state: present
+    filename: docker
+
+- name: Install Docker
+  ansible.builtin.apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+
+- name: Start and enable Docker
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Create media group (GID 1001)
+  ansible.builtin.group:
+    name: media
+    gid: 1001
+    state: present
+
+- name: Add {{ stack_user }} to docker and media groups
+  ansible.builtin.user:
+    name: "{{ stack_user }}"
+    groups: docker,media
+    append: true
+
+- name: Create /mnt/media directory
+  ansible.builtin.file:
+    path: /mnt/media
+    state: directory
+    owner: "{{ stack_user }}"
+    group: media
+    mode: "0775"
+
+- name: Add /mnt/media fstab entry for USB media drive
+  ansible.posix.mount:
+    path: /mnt/media
+    src: UUID=3b3a4cb8-ae88-48b7-8289-b150b57026e1
+    fstype: ext4
+    opts: defaults,nofail
+    state: present
+
+- name: Disable systemd-resolved stub listener for Pi-hole
+  ansible.builtin.copy:
+    dest: /etc/systemd/resolved.conf.d/no-stub.conf
+    content: |
+      [Resolve]
+      DNSStubListener=no
+    mode: "0644"
+  notify: Restart systemd-resolved

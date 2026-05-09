@@ -133,6 +133,23 @@ services:
     networks:
       - media
 
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - TZ=${TZ}
+      - FTLCONF_webserver_api_password=${PIHOLE_WEBPASSWORD}
+      - FTLCONF_webserver_port=8888
+      - PIHOLE_DNS_1=1.1.1.1
+      - PIHOLE_DNS_2=8.8.8.8
+    volumes:
+      - ./pihole/etc-pihole:/etc/pihole
+      - ./pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+    restart: unless-stopped
+
   homepage:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
@@ -141,12 +158,15 @@ services:
     volumes:
       - ./homepage:/app/config
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /mnt/media:/mnt/media:ro 
-      - /data:/data:ro
+      - /mnt/media:/mnt/media:ro
     environment:
-      - HOMEPAGE_ALLOWED_HOSTS=home.local,192.168.1.181
+      - HOMEPAGE_ALLOWED_HOSTS=${HOMEPAGE_ALLOWED_HOSTS}
       - PUID=${PUID}
       - PGID=${PGID}
+      - HOMEPAGE_VAR_JELLYFIN_KEY=${JELLYFIN_API_KEY}
+      - HOMEPAGE_VAR_SEERR_KEY=${SEERR_API_KEY}
+      - HOMEPAGE_VAR_RADARR_KEY=${RADARR_API_KEY}
+      - HOMEPAGE_VAR_SONARR_KEY=${SONARR_API_KEY}
     restart: unless-stopped
     networks:
       - media

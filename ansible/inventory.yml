@@ -1,0 +1,7 @@
+all:
+  children:
+    media_servers:
+      hosts:
+        media-server:
+          ansible_host: 192.168.1.182
+          ansible_user: donald

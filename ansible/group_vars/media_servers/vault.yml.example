@@ -1,0 +1,40 @@
+# Copy this file to vault.yml, fill in real values, then encrypt:
+#   ansible-vault encrypt ansible/group_vars/media_servers/vault.yml
+#
+# To run the playbook with the vault:
+#   ansible-playbook -i ansible/inventory.yml ansible/playbook.yml --ask-vault-pass
+
+vault_wireguard_private_key: REPLACE_ME
+vault_wireguard_addresses: REPLACE_ME          # e.g. 10.14.0.2/32
+vault_firewall_outbound_subnets: REPLACE_ME    # e.g. 192.168.1.0/24
+
+vault_jellyfin_api_key: REPLACE_ME
+vault_seerr_api_key: REPLACE_ME
+vault_radarr_api_key: REPLACE_ME
+vault_sonarr_api_key: REPLACE_ME
+vault_prowlarr_api_key: REPLACE_ME
+
+vault_sabnzbd_api_key: REPLACE_ME
+vault_sabnzbd_nzb_key: REPLACE_ME
+vault_sabnzbd_server_username: REPLACE_ME
+vault_sabnzbd_server_password: REPLACE_ME
+
+vault_qbittorrent_password_hash: REPLACE_ME    # value of WebUI\Password_PBKDF2 from qBittorrent.conf (without surrounding quotes)
+
+vault_seerr_client_id: REPLACE_ME             # clientId UUID from seerr/settings.json
+vault_seerr_session_secret: REPLACE_ME        # sessionSecret from seerr/settings.json
+vault_seerr_vapid_private: REPLACE_ME         # vapidPrivate from seerr/settings.json
+vault_seerr_vapid_public: REPLACE_ME          # vapidPublic from seerr/settings.json
+vault_seerr_jellyfin_api_key: REPLACE_ME      # jellyfin.apiKey from seerr/settings.json (distinct from vault_jellyfin_api_key)
+
+vault_bazarr_api_key: REPLACE_ME              # auth.apikey from bazarr/config/config.yaml
+vault_bazarr_flask_secret_key: REPLACE_ME     # general.flask_secret_key from bazarr/config/config.yaml
+vault_bazarr_addic7ed_username: REPLACE_ME
+vault_bazarr_addic7ed_password: REPLACE_ME
+vault_bazarr_opensubtitles_username: REPLACE_ME
+vault_bazarr_opensubtitles_password: REPLACE_ME
+
+vault_pihole_webpassword: REPLACE_ME
+
+# Uncomment if enabling Immich
+# vault_immich_db_password: REPLACE_ME

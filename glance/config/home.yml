@@ -1,0 +1,138 @@
+- name: Home
+  # Optionally, if you only have a single page you can hide the desktop navigation for a cleaner look
+  # hide-desktop-navigation: true
+  columns:
+    - size: small
+      widgets:
+        - type: calendar
+          first-day-of-week: monday
+
+        - type: server-stats
+          servers:
+            - type: local
+              name: Services
+
+    - size: full
+      widgets:
+        - type: group
+          widgets:
+            - type: reddit
+              subreddit: fayetteville
+              show-thumbnails: true
+            - type: reddit
+              subreddit: bentonville
+              show-thumbnails: true
+            - type: reddit
+              subreddit: arkansas
+              show-thumbnails: true
+            - type: reddit
+              subreddit: selfhosted
+              show-thumbnails: true
+            - type: reddit
+              subreddit: games
+              show-thumbnails: true
+            - type: custom-api
+              title: L/technology
+              cache: 10m
+              url: https://lemmy.world/api/v3/post/list?community_name=technology&type_=All&sort=Active&limit=10
+              options:
+                COLLAPSE_AFTER_COUNT: 5
+              headers:
+                Accept: application/json
+              template: |
+                {{ $collapse_after_count := .Options.IntOr "COLLAPSE_AFTER_COUNT" 5 }}
+                <ul class="list list-gap-14 collapsible-container" data-collapse-after="{{ $collapse_after_count }}">
+                {{ range.JSON.Array "posts" }}
+                  <li>
+                    <a href="{{ .String "post.ap_id" }}" class="size-title-dynamic color-primary-if-not-visited" target="_blank" rel="noreferrer">
+                      {{ .String "post.name" }}
+                    </a>
+                    <ul class="list-horizontal-text flex-nowrap">
+                      <li class="min-width-0">{{ .String "post.published" | parseTime "rfc3339" | toRelativeTime }}</li>
+                      <li class="min-width-0">{{ .Int "counts.score" }} pts</li>
+                      <li class="min-width-0">{{ .Int "counts.comments" }} comments</li>
+                      <li class="min-width-0 text-truncate">
+                        <a class="visited-indicator" target="_blank" rel="noreferrer" href="{{ .String "post.url" }}">Source</a>
+                      </li>
+                    </ul>
+                  </li>
+                {{ else }}
+                  <li class="text-compact color-muted">No posts found.</li>
+                {{ end }}
+                </ul>
+
+            - type: custom-api
+              title: L/selfhosted
+              cache: 10m
+              url: https://lemmy.world/api/v3/post/list?community_name=selfhosted&type_=All&sort=Active&limit=10
+              options:
+                COLLAPSE_AFTER_COUNT: 5
+              headers:
+                Accept: application/json
+              template: |
+                {{ $collapse_after_count := .Options.IntOr "COLLAPSE_AFTER_COUNT" 5 }}
+                <ul class="list list-gap-14 collapsible-container" data-collapse-after="{{ $collapse_after_count }}">
+                {{ range.JSON.Array "posts" }}
+                  {{ if not (or (.Bool "post.featured_local") (.Bool "post.featured_community")) }}
+                    <li>
+                      <a href="{{ .String "post.ap_id" }}" class="size-title-dynamic color-primary-if-not-visited" target="_blank" rel="noreferrer">
+                        {{ .String "post.name" }}
+                      </a>
+                      <ul class="list-horizontal-text flex-nowrap">
+                        <li class="min-width-0">{{ .String "post.published" | parseTime "rfc3339" | toRelativeTime }}</li>
+                        <li class="min-width-0">{{ .Int "counts.score" }} pts</li>
+                        <li class="min-width-0">{{ .Int "counts.comments" }} comments</li>
+                      </ul>
+                    </li>
+                  {{ end }}
+                {{ else }}
+                  <li class="text-compact color-muted">No posts found.</li>
+                {{ end }}
+                </ul>
+
+
+#        - type: group
+#          widgets:
+#            - type: rss
+#              title: news
+#              style: detailed-list
+#              limit: 10
+#              cache: 12h
+#              feeds:
+#                - url: https://www.arkansasonline.com/rss/
+#                  title: Arkansas Democrat-Gazette
+#                - url: https://www.nwahomepage.com/feed/
+#                  title: NWA Homepage
+#                #- url: https://www.4029tv.com/topstories-rss
+#                #  title: 40/29 News
+#            - type: rss
+#              title: greenway
+#              style: detailed-list
+#              limit: 10
+#              collapse-after: 3
+#              cache: 12h
+#              feeds:
+#                - url: https://rss.app/feeds/Y6BL01hLSFhoFwiu.xml
+#                  title: Razorback Greenway
+
+    - size: small
+      widgets:
+        - type: weather
+          location: Fayetteville, Arkansas, United States
+          units: imperial # alternatively "imperial"
+          hour-format: 12h # alternatively "24h"
+          # Optionally hide the location from being displayed in the widget
+          # hide-location: true
+
+        - type: releases
+          cache: 1d
+          # Without authentication the Github API allows for up to 60 requests per hour. You can create a
+          # read-only token from your Github account settings and use it here to increase the limit.
+          # token: ...
+          repositories:
+            - jellyfin/jellyfin
+            - glanceapp/glance
+            - seerr-team/seerr
+            - radarr/radarr
+            - sonarr/sonarr
+            - earthbuild/earthbuild

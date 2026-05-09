@@ -1,0 +1,6 @@
+---
+- name: Set up media server
+  hosts: media_servers
+  become: true
+  roles:
+    - media-server

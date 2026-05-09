@@ -1,0 +1,25 @@
+---
+
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/info-widgets/
+
+- resources:
+    cpu: true
+    memory: true
+    disk: /
+
+- resources:
+    label: /mnt/media
+    disk: /mnt/media
+
+- search:
+    provider: custom
+    url: http://home.local:4444/search?q=
+    target: _blank
+
+- openmeteo:
+    label: Fayetteville
+    latitude: 36.0626
+    longitude: -94.1574
+    timezone: America/Chicago
+    units: imperial

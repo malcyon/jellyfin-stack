@@ -1,0 +1,13 @@
+stack_user: donald
+stack_path: /home/donald/src/jellyfin-stack
+repo_url: https://github.com/malcyon/jellyfin-stack.git
+
+puid: 1000
+pgid: 1001
+tz: America/Chicago
+vpn_service_provider: surfshark
+vpn_type: wireguard
+server_countries: United States
+
+sabnzbd_host_whitelist: 192.168.1.182, sabnzbd.morton.lan
+homepage_allowed_hosts: 192.168.1.182,morton.lan

@@ -1,11 +1,39 @@
 .env
 
-gluetun/*
-jellyfin/*
-qbittorrent/*
-radarr/*
-sonarr/*
-prowlarr/*
-seerr/*
-nginx/*
-homepage/*
+# Ansible Vault — encrypt before committing, or keep local only
+ansible/group_vars/media_servers/vault.yml
+
+# Ignore everything in app dirs by default
+gluetun/**
+jellyfin/**
+qbittorrent/**
+radarr/**
+sonarr/**
+prowlarr/**
+seerr/**
+sabnzbd/**
+bazarr/**
+nginx/**
+pihole/**
+degoog/**
+immich/**
+homepage/logs/**
+
+# Allow clean qBittorrent files
+!qbittorrent/
+!qbittorrent/qBittorrent/
+!qbittorrent/qBittorrent/categories.json
+
+# Allow selected Jellyfin config files
+!jellyfin/
+!jellyfin/*.xml
+!jellyfin/*.json
+
+# Still ignore risky/noisy Jellyfin dirs
+jellyfin/cache/**
+jellyfin/data/**
+jellyfin/log/**
+jellyfin/metadata/**
+jellyfin/plugins/**
+jellyfin/.cache/**
+jellyfin/.aspnet/**

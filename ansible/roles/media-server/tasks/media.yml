@@ -1,0 +1,125 @@
+---
+- name: Clone media stack repository
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ stack_path }}"
+    version: main
+  become_user: "{{ stack_user }}"
+
+# --- Directory creation ---
+
+- name: Create radarr config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/radarr"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Create sonarr config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/sonarr"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Create prowlarr config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/prowlarr"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Create sabnzbd config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/sabnzbd"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Create qbittorrent config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/qbittorrent/qBittorrent"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Create seerr config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/seerr"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Create bazarr config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/bazarr/config"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+# --- Template deployment ---
+
+- name: Deploy .env from vault
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/env.j2"
+    dest: "{{ stack_path }}/.env"
+    owner: "{{ stack_user }}"
+    mode: "0600"
+
+- name: Deploy radarr config.xml from vault
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/radarr-config.xml.j2"
+    dest: "{{ stack_path }}/radarr/config.xml"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+
+- name: Deploy sonarr config.xml from vault
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/sonarr-config.xml.j2"
+    dest: "{{ stack_path }}/sonarr/config.xml"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+
+- name: Deploy prowlarr config.xml from vault
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/prowlarr-config.xml.j2"
+    dest: "{{ stack_path }}/prowlarr/config.xml"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+
+- name: Deploy sabnzbd.ini from vault
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/sabnzbd.ini.j2"
+    dest: "{{ stack_path }}/sabnzbd/sabnzbd.ini"
+    owner: "{{ stack_user }}"
+    mode: "0600"
+
+- name: Deploy qBittorrent.conf from vault
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/qbittorrent.conf.j2"
+    dest: "{{ stack_path }}/qbittorrent/qBittorrent/qBittorrent.conf"
+    owner: "{{ stack_user }}"
+    mode: "0600"
+
+- name: Deploy seerr settings.json from vault
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/seerr-settings.json.j2"
+    dest: "{{ stack_path }}/seerr/settings.json"
+    owner: "{{ stack_user }}"
+    mode: "0600"
+
+- name: Deploy bazarr config.yaml from vault
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/templates/bazarr-config.yaml.j2"
+    dest: "{{ stack_path }}/bazarr/config/config.yaml"
+    owner: "{{ stack_user }}"
+    mode: "0600"
+
+# --- Start stack ---
+
+- name: Start media stack
+  ansible.builtin.command:
+    cmd: docker compose up -d
+    chdir: "{{ stack_path }}"
+  become_user: "{{ stack_user }}"
+  changed_when: true

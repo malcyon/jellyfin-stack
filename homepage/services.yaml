@@ -1,0 +1,58 @@
+---
+# For configuration options and examples, please see:
+# https://gethomepage.dev/configs/services/
+
+- Media:
+    - Jellyfin:
+        href: http://home.local:8096
+        description: Watch movies and shows
+        widget:
+          type: jellyfin
+          url: http://jellyfin:8096
+          key: "{{HOMEPAGE_VAR_JELLYFIN_KEY}}"
+          enableBlocks: true
+          enableNowPlaying: false
+    - Seerr:
+        href: http://home.local:5055
+        description: Request movies and TV
+        widget:
+          type: seerr
+          url: http://seerr:5055
+          key: "{{HOMEPAGE_VAR_SEERR_KEY}}"
+    - Prowlarr:
+        href: http://home.local:9696
+        description: Indexers
+    - qBittorrent:
+        href: http://home.local:8080
+        description: Downloads
+    - Nginx Proxy Manager:
+        href: http://home.local:81
+        description: Reverse proxy
+    - SABnzbd:
+        href: http://home.local:8085
+        description: Newsgroups
+- Apps:
+  - Glance:
+      href: http://home.local:8081
+      description: Dashboard 
+  - WeatherBug:
+      href: https://www.weatherbug.com/weather-forecast/hourly/fayetteville-ar-72701?tu=1&pu=1&wsu=1
+      description: Weather Forecast
+
+- Downloads:
+    - Radarr:
+        href: http://home.local:7878
+        description: Movies management
+        widget:
+          type: radarr
+          url: http://radarr:7878
+          key: "{{HOMEPAGE_VAR_RADARR_KEY}}"
+          enableQueue: true
+    - Sonarr:
+        href: http://home.local:8989
+        description: TV management
+        widget:
+          type: sonarr
+          url: http://sonarr:8989
+          key: "{{HOMEPAGE_VAR_SONARR_KEY}}"
+          enableQueue: true
