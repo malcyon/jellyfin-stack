@@ -71,7 +71,7 @@
 - name: Add /mnt/media fstab entry for USB media drive
   ansible.posix.mount:
     path: /mnt/media
-    src: UUID=3b3a4cb8-ae88-48b7-8289-b150b57026e1
+    src: UUID={{ media_drive_uuid }}
     fstype: ext4
     opts: defaults,nofail
     state: present

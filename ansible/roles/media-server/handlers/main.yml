@@ -3,3 +3,45 @@
   ansible.builtin.service:
     name: systemd-resolved
     state: restarted
+
+- name: Restart radarr
+  ansible.builtin.command:
+    cmd: docker compose restart radarr
+    chdir: "{{ stack_path }}"
+  changed_when: true
+
+- name: Restart sonarr
+  ansible.builtin.command:
+    cmd: docker compose restart sonarr
+    chdir: "{{ stack_path }}"
+  changed_when: true
+
+- name: Restart prowlarr
+  ansible.builtin.command:
+    cmd: docker compose restart prowlarr
+    chdir: "{{ stack_path }}"
+  changed_when: true
+
+- name: Restart sabnzbd
+  ansible.builtin.command:
+    cmd: docker compose restart sabnzbd
+    chdir: "{{ stack_path }}"
+  changed_when: true
+
+- name: Restart qbittorrent
+  ansible.builtin.command:
+    cmd: docker compose restart qbittorrent
+    chdir: "{{ stack_path }}"
+  changed_when: true
+
+- name: Restart seerr
+  ansible.builtin.command:
+    cmd: docker compose restart seerr
+    chdir: "{{ stack_path }}"
+  changed_when: true
+
+- name: Restart bazarr
+  ansible.builtin.command:
+    cmd: docker compose restart bazarr
+    chdir: "{{ stack_path }}"
+  changed_when: true

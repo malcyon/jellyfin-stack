@@ -9,5 +9,15 @@ vpn_service_provider: surfshark
 vpn_type: wireguard
 server_countries: United States
 
-sabnzbd_host_whitelist: 192.168.1.182, sabnzbd.morton.lan
+sabnzbd_host_whitelist: 192.168.1.182,sabnzbd.morton.lan
 homepage_allowed_hosts: 192.168.1.182,192.168.1.182:3000,morton.lan
+
+# UUID of the USB media drive — run `blkid /dev/sdX` to find yours
+media_drive_uuid: 3b3a4cb8-ae88-48b7-8289-b150b57026e1
+
+# Jellyfin server and library IDs — used by Seerr to connect to the right libraries.
+# Find these in Jellyfin: Dashboard → API → Server Info, and Libraries.
+# These will differ on a fresh install vs a migrated one.
+jellyfin_server_id: c6fc147273fb4edd9f9c179d3b2ea2b7
+jellyfin_movies_library_id: f137a2dd21bbc1b99aa5c0f6bf02a805
+jellyfin_shows_library_id: a656b907eb3a73532e40e44b968d0225
