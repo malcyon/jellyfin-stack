@@ -13,10 +13,10 @@
 set -euo pipefail
 
 STACK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEST="${1:-donald@192.168.1.182}"
+DEST="${1:-donald@media}"
 DEST_STACK="${2:-/home/donald/src/jellyfin-stack}"
 WORK="$(mktemp -d)"
-trap 'rm -rf "$WORK"' EXIT
+trap 'rm -rf "$WORK"' EXIT INT TERM
 
 echo "Source : $STACK_ROOT"
 echo "Dest   : $DEST:$DEST_STACK"
