@@ -38,6 +38,9 @@
   - Glance:
       href: http://glance.morton.lan
       description: Dashboard
+  - Grafana:
+      href: https://malcyon.grafana.net
+      description: Metrics and logs
   - WeatherBug:
       href: https://www.weatherbug.com/weather-forecast/hourly/fayetteville-ar-72701?tu=1&pu=1&wsu=1
       description: Weather Forecast
