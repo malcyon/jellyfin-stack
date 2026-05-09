@@ -24,16 +24,5 @@ homepage/logs/**
 !qbittorrent/qBittorrent/
 !qbittorrent/qBittorrent/categories.json
 
-# Allow selected Jellyfin config files
+# Jellyfin runtime config is managed by Jellyfin itself — not tracked in git
 !jellyfin/
-!jellyfin/*.xml
-!jellyfin/*.json
-
-# Still ignore risky/noisy Jellyfin dirs
-jellyfin/cache/**
-jellyfin/data/**
-jellyfin/log/**
-jellyfin/metadata/**
-jellyfin/plugins/**
-jellyfin/.cache/**
-jellyfin/.aspnet/**
