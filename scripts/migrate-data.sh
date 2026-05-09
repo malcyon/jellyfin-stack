@@ -33,27 +33,25 @@ docker compose stop jellyfin radarr sonarr prowlarr seerr
 # ---------------------------------------------------------------------------
 # Create archives
 # ---------------------------------------------------------------------------
-echo "==> Creating archives..."
+
+archive() {
+  local name="$1"; shift
+  echo -n "==> Archiving ${name}... "
+  tar -czf "$WORK/${name}.tar.gz" "$@"
+  echo "$(du -sh "$WORK/${name}.tar.gz" | cut -f1)"
+}
 
 # Jellyfin: data/ subdir only (db + metadata + plugins).
 # Top-level XML configs are in git and managed by Ansible — excluded.
-tar -czf "$WORK/jellyfin.tar.gz" \
-  -C "$STACK_ROOT/jellyfin" \
-  data
+archive jellyfin -C "$STACK_ROOT/jellyfin" data
 
 # *arr apps: full config dir minus config.xml (Ansible deploys API keys there).
 for svc in radarr sonarr prowlarr; do
-  tar -czf "$WORK/${svc}.tar.gz" \
-    --exclude="${svc}/config.xml" \
-    -C "$STACK_ROOT" \
-    "$svc"
+  archive "$svc" --exclude="${svc}/config.xml" -C "$STACK_ROOT" "$svc"
 done
 
 # Seerr: full config dir minus settings.json (Ansible-managed).
-tar -czf "$WORK/seerr.tar.gz" \
-  --exclude="seerr/settings.json" \
-  -C "$STACK_ROOT" \
-  seerr
+archive seerr --exclude="seerr/settings.json" -C "$STACK_ROOT" seerr
 
 # ---------------------------------------------------------------------------
 # Restart source services
@@ -65,7 +63,7 @@ docker compose start jellyfin radarr sonarr prowlarr seerr
 # Upload
 # ---------------------------------------------------------------------------
 echo "==> Uploading archives to $DEST..."
-scp "$WORK"/*.tar.gz "$DEST:/tmp/"
+scp -v "$WORK"/*.tar.gz "$DEST:/tmp/" 2>&1 | grep --line-buffered -E 'Sending|sent|ETA|100%|tar\.gz'
 
 # ---------------------------------------------------------------------------
 # Extract on media server
@@ -79,13 +77,13 @@ echo "Stopping destination services..."
 docker compose -f $DEST_STACK/docker-compose.yml stop jellyfin radarr sonarr prowlarr seerr
 
 echo "Extracting archives..."
-# Jellyfin: restore into jellyfin/ so data/ lands at jellyfin/data/
-tar -xzf /tmp/jellyfin.tar.gz  -C $DEST_STACK/jellyfin
-
-# *arr + seerr: restore into stack root so directory names are preserved
 for svc in radarr sonarr prowlarr seerr; do
+  echo "  \${svc}..."
   tar -xzf /tmp/\${svc}.tar.gz -C $DEST_STACK
 done
+
+echo "  jellyfin..."
+tar -xzf /tmp/jellyfin.tar.gz -C $DEST_STACK/jellyfin
 
 rm -f /tmp/{jellyfin,radarr,sonarr,prowlarr,seerr}.tar.gz
 
