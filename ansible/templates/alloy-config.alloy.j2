@@ -44,8 +44,8 @@ prometheus.scrape "node" {
 
 // ===== Docker container resource metrics (cAdvisor) =====
 prometheus.exporter.cadvisor "docker" {
-  docker_host      = "unix:///var/run/docker.sock"
-  containerd_host  = ""
+  docker_host     = "unix:///var/run/docker.sock"
+  containerd_host = "/run/containerd/containerd.sock"
 }
 
 prometheus.scrape "cadvisor" {

@@ -3,3 +3,7 @@
   ansible.builtin.systemd:
     name: alloy
     state: restarted
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
