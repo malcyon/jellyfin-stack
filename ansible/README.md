@@ -5,19 +5,13 @@ Automates the setup of a Jellyfin media server.
 
 ## Prerequisites
 
-Install Ansible and the required collection on your local machine:
+Install Ansible on your local machine:
 
 ```bash
-sudo apt install pipx
-pipx install ansible
-pipx ensurepath
+sudo apt install ansible
 ```
 
-Open a new terminal so the PATH update takes effect, then install the required collection:
-
-```bash
-ansible-galaxy collection install ansible.posix
-```
+`ansible.posix` is included with the Ubuntu ansible package — no separate install needed.
 
 ---
 
