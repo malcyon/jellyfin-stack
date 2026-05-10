@@ -221,6 +221,95 @@ Secure access to the stack from outside the LAN without port forwarding:
 
 ---
 
+## Kubuntu Migration (Home PC — `home` / 192.168.1.181)
+
+Replacing Pop OS / COSMIC with Kubuntu on the home PC. The Jellyfin stack has already been fully migrated to the media server, so this machine is now just a client/workstation.
+
+### Pre-wipe Backup Checklist
+
+Back these up before wiping — they are not in git and cannot be recovered from the media server:
+
+- [ ] **`~/.ssh/`** — SSH keypair used to reach the media server; also used by Ansible
+- [ ] **`~/.ansible/vault_pass`** — Ansible vault password file; without this you cannot decrypt `vault.yml` or run the playbook
+- [ ] **`~/.gitconfig`** — name/email git config (`Donald Morton` / `d1morto@gmail.com`)
+- [ ] **`~/.claude/`** — Claude Code config, memory, project history, MCP server settings
+- [ ] **`~/.config/onedrive/config`** — OneDrive sync config (note: `sync_dir` points to `/data/OneDrive` which won't exist on new machine — update path after reinstall)
+- [ ] **Obsidian vault** — check where it lives (likely in OneDrive sync or `~/Documents`); make sure OneDrive is fully synced before wipe
+- [ ] **`/etc/systemd/system/mnt-media.mount`** and **`mnt-media.automount`** — SSHFS automount units for `/mnt/media`; content is documented in this file under "Home PC Configuration"
+
+### Apps to Install
+
+**System tools (apt)**
+- [ ] `git`
+- [ ] `vim`
+- [ ] `htop` / `btop` / `iotop`
+- [ ] `tree`
+- [ ] `rsync`
+- [ ] `sshfs` — needed for the `/mnt/media` automount from the media server
+- [ ] `ffmpeg`
+- [ ] `openssh-server` — if you want to SSH into the home PC from other machines
+- [ ] `pavucontrol` — audio device control (KDE has its own but this is more powerful)
+- [ ] `pipx` — for installing Python CLI tools in isolated envs
+- [ ] `build-essential` — C/C++ toolchain, needed for some installs
+
+**Applications (apt or deb)**
+- [ ] **VS Code** — `code` package via Microsoft apt repo; extensions: `ms-azuretools.vscode-containers`, `yzhang.markdown-all-in-one`
+- [ ] **Discord** — download `.deb` from discord.com
+- [ ] **Steam** — `steam:i386` via apt (enable multiverse first)
+- [ ] **Thunderbird** — email client; available in apt or as Flatpak
+
+**Applications (Flatpak)** — install Flatpak first, add Flathub remote
+- [ ] `com.spotify.Client` — Spotify
+- [ ] `md.obsidian.Obsidian` — Obsidian notes
+- [ ] `org.videolan.VLC` — VLC media player
+
+**Browser**
+- [ ] Firefox — included with Kubuntu; no action needed
+- [ ] Chromium — install via `snap install chromium` if you want it as a secondary browser
+
+**CLI tools**
+- [ ] **uv** — Python package/project manager; install via: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- [ ] **Claude Code** — install via: `npm install -g @anthropic-ai/claude-code` (requires Node first, or see claude.ai/code for native install)
+- [ ] **Ansible** — install via pipx: `pipx install ansible-community`
+- [ ] **OneDrive client** (`onedrive` package) — Linux OneDrive sync daemon; available via `apt` after adding the repo. Reconfigure `sync_dir` to new path (e.g. `~/OneDrive`)
+
+### Post-Install Configuration
+
+**Restore backed-up files**
+```
+cp -r /backup/.ssh ~/.ssh && chmod 700 ~/.ssh && chmod 600 ~/.ssh/*
+cp /backup/vault_pass ~/.ansible/vault_pass && chmod 600 ~/.ansible/vault_pass
+cp -r /backup/.claude ~/.claude
+cp /backup/.gitconfig ~/.gitconfig
+```
+
+**SSHFS automount for `/mnt/media`**
+
+Recreate the systemd units documented in the "Home PC Configuration" section above:
+```
+sudo cp /backup/mnt-media.mount /etc/systemd/system/
+sudo cp /backup/mnt-media.automount /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now mnt-media.automount
+```
+Also re-add the server's host key: `sudo ssh-keyscan 192.168.1.182 | sudo tee -a /root/.ssh/known_hosts`
+
+**Grafana MCP for Claude Code**
+
+The MCP server config lives in `~/.claude/settings.json` under `mcpServers`. After restoring `~/.claude/`, it should already be there. It uses `uvx mcp-grafana` with `GRAFANA_URL` and `GRAFANA_SERVICE_ACCOUNT_TOKEN` env vars. Verify with: `claude mcp list`
+
+**Git**
+```
+git config --global user.name "Donald Morton"
+git config --global user.email "d1morto@gmail.com"
+```
+(Or just restore `~/.gitconfig` from backup.)
+
+**OneDrive**
+Update `~/.config/onedrive/config` to set `sync_dir` to wherever you want it on the new machine, then run `onedrive --synchronize` to re-sync.
+
+---
+
 ## Service Reconfiguration Checklist (post-deploy, manual)
 
 These must be done through each service's web UI after first boot:
