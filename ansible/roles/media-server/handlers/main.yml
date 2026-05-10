@@ -46,6 +46,12 @@
     chdir: "{{ stack_path }}"
   changed_when: true
 
+- name: Restart freshrss
+  ansible.builtin.command:
+    cmd: docker compose restart freshrss
+    chdir: "{{ stack_path }}"
+  changed_when: true
+
 - name: Apply Netplan
   ansible.builtin.command: netplan apply
   changed_when: true

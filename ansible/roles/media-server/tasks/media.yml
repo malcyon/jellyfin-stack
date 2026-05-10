@@ -137,6 +137,31 @@
     force: false
   notify: Restart bazarr
 
+# --- FreshRSS extensions ---
+
+- name: Create FreshRSS extensions directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/freshrss/extensions"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Install af_readability FreshRSS extension
+  ansible.builtin.unarchive:
+    src: https://github.com/Niehztog/freshrss-af-readability/archive/refs/heads/master.zip
+    dest: "{{ stack_path }}/freshrss/extensions"
+    remote_src: true
+    creates: "{{ stack_path }}/freshrss/extensions/af_readability"
+  become_user: "{{ stack_user }}"
+  notify: Restart freshrss
+
+- name: Rename af_readability extension directory to expected name
+  ansible.builtin.command:
+    cmd: mv freshrss-af-readability-master freshrss/extensions/af_readability
+    chdir: "{{ stack_path }}"
+    creates: "{{ stack_path }}/freshrss/extensions/af_readability"
+  become_user: "{{ stack_user }}"
+
 # --- Start stack ---
 
 - name: Start media stack
