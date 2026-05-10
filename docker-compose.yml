@@ -280,7 +280,10 @@ services:
       - ./romm/redis-data:/redis-data
       - ./romm/assets:/romm/assets
       - ./romm/config:/romm/config
-      - /mnt/media/roms:/romm/library
+      - /mnt/media/roms:/romm/library/roms
+      - ./romm/saves:/romm/library/saves
+      - ./romm/states:/romm/library/states
+      - ./romm/screenshots:/romm/library/screenshots
     ports:
       - "8083:8080"
     depends_on:
