@@ -167,6 +167,30 @@ Managed by Ansible template `ansible/templates/netplan-static.yaml.j2`, deployed
 - IP: `192.168.1.182/24`, gateway `192.168.1.254`
 - DNS: `1.1.1.1`, `8.8.8.8` (public — Pi-hole handles LAN DNS for clients, not the server itself)
 
+### WiFi fix — RTW8822BE PCIe AER errors
+
+The RTW8822BE WiFi card throws PCIe AER (Advanced Error Reporting) correctable errors. On kernel 6.18+, the kernel responds to these errors aggressively and disables the card, breaking WiFi after every reboot.
+
+**Fix (Pop OS, kernelstub):**
+```
+sudo kernelstub -a "pcie_aspm=off pci=noaer"
+```
+
+- `pcie_aspm=off` — disables PCIe Active State Power Management so the card isn't put into a sleep state it can't recover from
+- `pci=noaer` — tells the kernel to ignore PCIe AER errors rather than acting on them (which was causing the card to be reset/disabled)
+
+**Fix (Kubuntu, GRUB):** After reinstalling on Kubuntu, the equivalent is:
+```
+sudo nano /etc/default/grub
+```
+Find `GRUB_CMDLINE_LINUX_DEFAULT` and add the params:
+```
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash pcie_aspm=off pci=noaer"
+```
+Then apply: `sudo update-grub` and reboot.
+
+This is a workaround, not a real fix — the RTW8822BE driver has had PCIe power management bugs for years. The parameters are safe and the power impact on a desktop is negligible (< 1W).
+
 ### SSHFS mount for `/mnt/media`
 The home PC (`home` / 192.168.1.181) mounts the media server's `/mnt/media` locally at `/mnt/media` via SSHFS, allowing the file manager to browse and reorganize media files directly.
 
@@ -307,6 +331,16 @@ git config --global user.email "d1morto@gmail.com"
 
 **OneDrive**
 Update `~/.config/onedrive/config` to set `sync_dir` to wherever you want it on the new machine, then run `onedrive --synchronize` to re-sync.
+
+**WiFi kernel parameters (important — apply immediately after install)**
+
+The RTW8822BE WiFi card breaks on reboot without these. See "WiFi fix" section above for the full explanation. On Kubuntu:
+```
+sudo nano /etc/default/grub
+# Add to GRUB_CMDLINE_LINUX_DEFAULT: pcie_aspm=off pci=noaer
+sudo update-grub
+sudo reboot
+```
 
 ---
 
