@@ -20,6 +20,8 @@ pihole/**
 !pihole/etc-dnsmasq.d/02-local-reservations.conf
 degoog/**
 immich/**
+freshrss/**
+romm/**
 homepage/logs/**
 
 # Allow clean qBittorrent files

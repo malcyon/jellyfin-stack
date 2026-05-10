@@ -201,18 +201,12 @@ WantedBy=multi-user.target
 ### Ongoing stack backup/restore (`backup.sh` / `restore.sh`)
 Scripts for routine backup and disaster recovery of the entire stack. Design TBD.
 
-### RomM — Game library manager
-https://romm.app — ROM management with metadata, artwork, and a web UI. Would complement the media server as a self-hosted game library. Needs a volume for ROMs.
-
 ### Video transcoding — Tdarr / FileFlows / Unmanic
 Automated transcoding pipeline to convert video files to AAC audio for better compatibility with mobile clients (Jellyfin on iOS/Android often can't direct play non-AAC audio). Options:
 - **Tdarr** — most mature, plugin-based, has a worker model
 - **FileFlows** — newer, flow-based UI, active development
 - **Unmanic** — simpler, lightweight
 All three can watch a folder and transcode in place or to a target directory.
-
-### FreshRSS — RSS feed aggregator
-Self-hosted RSS reader with a web UI and API compatible with most RSS apps (Reeder, NetNewsWire, etc.). Lightweight PHP app, single Docker container.
 
 ### Shared notes — Obsidian Sync alternative
 Self-hosted sync backend for Obsidian or a standalone notes app. Options:
@@ -239,3 +233,6 @@ These must be done through each service's web UI after first boot:
 - [ ] **Prowlarr** — Copy the latest backup zip from `prowlarr/Backups/scheduled/` to the new server, then restore: `Settings → Backup → Restore`. After restore, trigger a manual sync in Radarr and Sonarr (`Settings → Indexers → Sync App Indexers`).
 - [ ] **Seerr** — `jellyfin.serverId` and library IDs will be stale since Jellyfin rebuilt its database. Go to **Settings → Jellyfin** and re-run the server sync to update the server ID and re-discover libraries.
 - [ ] **homepage** — Update `href` URLs in `services.yaml` from `home.local:PORT` to `service.morton.lan`
+- [ ] **FreshRSS** — Visit `http://freshrss.morton.lan` and run the setup wizard; create admin account; add RSS feeds
+- [ ] **RomM** — Add vault secrets (`vault_romm_db_password`, `vault_romm_db_root_password`, `vault_romm_auth_secret_key`) then run Ansible; ROMs go in `/mnt/media/roms`; optionally register a Twitch/IGDB app for metadata
+- [ ] **nginx-proxy-manager** — Add proxy hosts for `freshrss.morton.lan` → `:8082` and `romm.morton.lan` → `:8083`

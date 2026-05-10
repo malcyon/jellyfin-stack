@@ -248,6 +248,67 @@ services:
 #    networks:
 #      - media
 
+  freshrss:
+    image: freshrss/freshrss:latest
+    container_name: freshrss
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+      - CRON_MIN=4,34
+    volumes:
+      - ./freshrss/data:/var/www/FreshRSS/data
+      - ./freshrss/extensions:/var/www/FreshRSS/extensions
+    ports:
+      - "8082:80"
+    networks:
+      - media
+
+  romm:
+    image: rommapp/romm:latest
+    container_name: romm
+    restart: unless-stopped
+    environment:
+      - DB_HOST=romm-db
+      - DB_NAME=romm
+      - DB_USER=romm-user
+      - DB_PASSWD=${ROMM_DB_PASSWORD}
+      - ROMM_AUTH_SECRET_KEY=${ROMM_AUTH_SECRET_KEY}
+      - IGDB_CLIENT_ID=${IGDB_CLIENT_ID:-}
+      - IGDB_CLIENT_SECRET=${IGDB_CLIENT_SECRET:-}
+    volumes:
+      - ./romm/resources:/romm/resources
+      - ./romm/redis-data:/redis-data
+      - ./romm/assets:/romm/assets
+      - ./romm/config:/romm/config
+      - /mnt/media/roms:/romm/library
+    ports:
+      - "8083:8080"
+    depends_on:
+      romm-db:
+        condition: service_healthy
+    networks:
+      - media
+
+  romm-db:
+    image: mariadb:latest
+    container_name: romm-db
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${ROMM_DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=romm
+      - MYSQL_USER=romm-user
+      - MYSQL_PASSWORD=${ROMM_DB_PASSWORD}
+    volumes:
+      - ./romm/db:/var/lib/mysql
+    networks:
+      - media
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   sabnzbd:
     image: lscr.io/linuxserver/sabnzbd:latest
     container_name: sabnzbd

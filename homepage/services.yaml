@@ -41,9 +41,17 @@
   - Grafana:
       href: https://malcyon.grafana.net
       description: Metrics and logs
+  - FreshRSS:
+      href: http://freshrss.morton.lan
+      description: RSS feed reader
   - WeatherBug:
       href: https://www.weatherbug.com/weather-forecast/hourly/fayetteville-ar-72701?tu=1&pu=1&wsu=1
       description: Weather Forecast
+
+- Games:
+  - RomM:
+      href: http://romm.morton.lan
+      description: Game library manager
 
 - Downloads:
     - Radarr:

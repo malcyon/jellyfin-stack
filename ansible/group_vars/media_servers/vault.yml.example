@@ -42,5 +42,14 @@ vault_grafana_cloud_loki_url: REPLACE_ME            # Grafana Cloud → your sta
 vault_grafana_cloud_loki_username: REPLACE_ME       # Numeric username shown on the same page
 vault_grafana_cloud_api_key: REPLACE_ME             # Service account token — Administration → Service Accounts → Add token
 
+vault_romm_db_password: REPLACE_ME
+vault_romm_db_root_password: REPLACE_ME
+vault_romm_auth_secret_key: REPLACE_ME    # random string, e.g.: openssl rand -hex 32
+
+# Optional — needed for IGDB metadata (game covers, descriptions, etc.)
+# Register a Twitch app at dev.twitch.tv, enable IGDB API product
+# vault_igdb_client_id: REPLACE_ME
+# vault_igdb_client_secret: REPLACE_ME
+
 # Uncomment if enabling Immich
 # vault_immich_db_password: REPLACE_ME
