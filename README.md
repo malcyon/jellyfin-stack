@@ -20,17 +20,16 @@ The stack is deployed with Docker Compose and provisioned via Ansible. See [ansi
 | [nginx-proxy-manager](https://github.com/NginxProxyManager/nginx-proxy-manager) | Reverse proxy |
 | [Homepage](https://github.com/gethomepage/homepage) | Dashboard |
 | [Glance](https://github.com/glanceapp/glance) | Self-hosted start page |
+| [FreshRSS](https://github.com/FreshRSS/FreshRSS) | Self-hosted RSS Reader |
+| [RomM](https://github.com/rommapp/romm) | Self-hosted ROM Manager |
 
 ## Future plans
 
 ### Services to add
 | Service | Purpose | Notes |
 |---|---|---|
-| **FreshRSS** | Self-hosted RSS reader | Lightweight, easy to add |
-| **Nextcloud** (or alternative) | Shared filesystem / cloud storage | Heavy; Seafile is a lighter alternative |
 | **Tdarr / Fileflows / Unmanic** | Automated media transcoding — add AAC audio tracks | Evaluate which fits workflow best |
 | **Restic + Restic REST Server** | Automated backups | Back up Jellyfin db, *arr databases, config dirs |
-| **RomM** | ROM manager for game library | Integrates with Jellyfin |
 | **Tailscale or Cloudflare Tunnel** | Secure remote access without port forwarding | Tailscale is simpler; Cloudflare Tunnel avoids VPN client requirement |
 
 ### Infrastructure
