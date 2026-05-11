@@ -283,7 +283,7 @@ services:
       - HASHEOUS_API_ENABLED=true
       - LAUNCHBOX_API_ENABLED=true
       - FLASHPOINT_API_ENABLED=true
-      - HLTB_API_ENABLED=true
+      - HLTB_API_ENABLED=false
     volumes:
       - ./romm/resources:/romm/resources
       - ./romm/redis-data:/redis-data
