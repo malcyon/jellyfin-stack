@@ -46,10 +46,19 @@ vault_romm_db_password: REPLACE_ME
 vault_romm_db_root_password: REPLACE_ME
 vault_romm_auth_secret_key: REPLACE_ME    # random string, e.g.: openssl rand -hex 32
 
-# Optional — needed for IGDB metadata (game covers, descriptions, etc.)
-# Register a Twitch app at dev.twitch.tv, enable IGDB API product
+# Optional — RomM metadata sources (all commented out until you have credentials)
+# IGDB: register a Twitch app at dev.twitch.tv, enable IGDB API product
 # vault_igdb_client_id: REPLACE_ME
 # vault_igdb_client_secret: REPLACE_ME
+# MobyGames: request API key at mobygames.com/info/api/
+# vault_mobygames_api_key: REPLACE_ME
+# ScreenScraper: account credentials from screenscraper.fr
+# vault_screenscraper_user: REPLACE_ME
+# vault_screenscraper_password: REPLACE_ME
+# RetroAchievements: API key from retroachievements.org/settings
+# vault_retroachievements_api_key: REPLACE_ME
+# SteamGridDB: API key from steamgriddb.com (profile → preferences → API)
+# vault_steamgriddb_api_key: REPLACE_ME
 
 # Uncomment if enabling Immich
 # vault_immich_db_password: REPLACE_ME
