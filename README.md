@@ -22,6 +22,8 @@ The stack is deployed with Docker Compose and provisioned via Ansible. See [ansi
 | [Glance](https://github.com/glanceapp/glance) | Self-hosted start page |
 | [FreshRSS](https://github.com/FreshRSS/FreshRSS) | Self-hosted RSS Reader |
 | [RomM](https://github.com/rommapp/romm) | Self-hosted ROM Manager |
+| [Kiwix](https://github.com/kiwix/kiwix-tools) | Offline ZIM archive server (Wikipedia, etc.) |
+| [Tailscale](https://tailscale.com/) | WireGuard-based VPN for remote LAN access |
 
 ## Future plans
 
@@ -30,7 +32,6 @@ The stack is deployed with Docker Compose and provisioned via Ansible. See [ansi
 |---|---|---|
 | **Tdarr / Fileflows / Unmanic** | Automated media transcoding — add AAC audio tracks | Evaluate which fits workflow best |
 | **Restic + Restic REST Server** | Automated backups | Back up Jellyfin db, *arr databases, config dirs |
-| **Tailscale or Cloudflare Tunnel** | Secure remote access without port forwarding | Tailscale is simpler; Cloudflare Tunnel avoids VPN client requirement |
 
 ### Infrastructure
 - **UPS** — protect the media server and router from power loss; prevents database corruption on unclean shutdown
