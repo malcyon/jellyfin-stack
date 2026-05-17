@@ -24,6 +24,7 @@ The stack is deployed with Docker Compose and provisioned via Ansible. See [ansi
 | [RomM](https://github.com/rommapp/romm) | Self-hosted ROM Manager |
 | [Kiwix](https://github.com/kiwix/kiwix-tools) | Offline ZIM archive server (Wikipedia, etc.) |
 | [Tailscale](https://tailscale.com/) | WireGuard-based VPN for remote LAN access |
+| [Navidrome](https://github.com/navidrome/navidrome) | Subsonic-compatible music streaming server |
 
 ## Future plans
 

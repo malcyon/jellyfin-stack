@@ -28,6 +28,9 @@
     - SABnzbd:
         href: http://sabnzbd.morton.lan
         description: Newsgroups
+    - Navidrome:
+        href: http://navidrome.morton.lan
+        description: Music streaming
 
 - Apps:
   - Glance:

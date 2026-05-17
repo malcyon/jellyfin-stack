@@ -354,6 +354,25 @@ services:
       - media
 
 
+  navidrome:
+    image: deluan/navidrome:latest
+    container_name: navidrome
+    user: "${PUID}:${PGID}"
+    environment:
+      - ND_LOGLEVEL=info
+      - ND_SCANSCHEDULE=1h
+      - ND_SESSIONTIMEOUT=24h
+      - ND_TRANSCODINGCACHESIZE=100MB
+      - ND_DEFAULTLANGUAGE=en
+    ports:
+      - "4533:4533"
+    volumes:
+      - ./navidrome:/data
+      - /mnt/media/music:/music:ro
+    restart: unless-stopped
+    networks:
+      - media
+
   tailscale:
     image: tailscale/tailscale:latest
     container_name: tailscale

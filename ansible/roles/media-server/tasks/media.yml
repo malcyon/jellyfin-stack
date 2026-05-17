@@ -124,6 +124,21 @@
     owner: "{{ stack_user }}"
     mode: "0755"
 
+- name: Create music directory
+  ansible.builtin.file:
+    path: /mnt/media/music
+    state: directory
+    owner: "{{ stack_user }}"
+    group: media
+    mode: "0775"
+
+- name: Create navidrome config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/navidrome"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
 - name: Create tailscale state directory
   ansible.builtin.file:
     path: "{{ stack_path }}/tailscale"
