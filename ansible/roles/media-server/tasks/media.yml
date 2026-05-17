@@ -124,6 +124,21 @@
     owner: "{{ stack_user }}"
     mode: "0755"
 
+- name: Create tailscale state directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/tailscale"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0700"
+
+- name: Enable IP forwarding for Tailscale subnet routing
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: true
+    state: present
+    reload: true
+
 - name: Create kiwix data directory
   ansible.builtin.file:
     path: "{{ stack_path }}/kiwix/data"

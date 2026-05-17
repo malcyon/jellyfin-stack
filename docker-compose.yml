@@ -354,6 +354,26 @@ services:
       - media
 
 
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: tailscale
+    hostname: media-server
+    network_mode: host
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_ROUTES=192.168.1.0/24
+      - TS_USERSPACE=false
+      - TS_AUTH_ONCE=true
+    volumes:
+      - ./tailscale:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+    restart: unless-stopped
+
   kiwix:
     image: ghcr.io/kiwix/kiwix-serve:latest
     container_name: kiwix

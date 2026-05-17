@@ -60,5 +60,7 @@ vault_romm_auth_secret_key: REPLACE_ME    # random string, e.g.: openssl rand -h
 # SteamGridDB: API key from steamgriddb.com (profile → preferences → API)
 # vault_steamgriddb_api_key: REPLACE_ME
 
+vault_tailscale_authkey: REPLACE_ME    # Tailscale admin console → Settings → Keys → Generate auth key
+
 # Uncomment if enabling Immich
 # vault_immich_db_password: REPLACE_ME
