@@ -1,11 +1,71 @@
 ---
-- name: Clone media stack repository
-  ansible.builtin.git:
-    repo: "{{ repo_url }}"
-    dest: "{{ stack_path }}"
-    version: main
-    force: true
-  become_user: "{{ stack_user }}"
+# --- Stack directory ---
+
+- name: Ensure stack directory exists
+  ansible.builtin.file:
+    path: "{{ stack_path }}"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Remove .git directory (cleanup from previous git clone deployment)
+  ansible.builtin.file:
+    path: "{{ stack_path }}/.git"
+    state: absent
+
+# --- File deployment from Ansible controller ---
+
+- name: Copy docker-compose.yml
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../docker-compose.yml"
+    dest: "{{ stack_path }}/docker-compose.yml"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+
+- name: Create homepage directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/homepage"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Copy homepage config
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../homepage/"
+    dest: "{{ stack_path }}/homepage/"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+    directory_mode: "0755"
+
+- name: Create glance directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/glance"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Copy glance config
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../glance/"
+    dest: "{{ stack_path }}/glance/"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+    directory_mode: "0755"
+
+- name: Create pihole/etc-dnsmasq.d directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/pihole/etc-dnsmasq.d"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Copy pihole local DNS reservations (initial setup only)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../pihole/etc-dnsmasq.d/02-local-reservations.conf"
+    dest: "{{ stack_path }}/pihole/etc-dnsmasq.d/02-local-reservations.conf"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+    force: false
 
 # --- Directory creation ---
 
@@ -48,6 +108,14 @@
     owner: "{{ stack_user }}"
     group: media
     mode: "0755"
+
+- name: Copy qBittorrent categories (initial setup only)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../qbittorrent/qBittorrent/categories.json"
+    dest: "{{ stack_path }}/qbittorrent/qBittorrent/categories.json"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+    force: false
 
 - name: Create seerr config directory
   ansible.builtin.file:
@@ -97,6 +165,7 @@
     content: "{{ lookup('template', playbook_dir ~ '/templates/prowlarr-config.xml.j2') }}"
     dest: "{{ stack_path }}/prowlarr/config.xml"
     owner: "{{ stack_user }}"
+    group: media
     mode: "0644"
     force: false
   notify: Restart prowlarr

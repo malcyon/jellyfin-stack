@@ -1,6 +1,5 @@
 stack_user: donald
 stack_path: /home/donald/src/jellyfin-stack
-repo_url: git@github.com:malcyon/jellyfin-stack.git
 
 network_interface: enp3s0
 interface_mac: "34:17:eb:ca:54:71"
