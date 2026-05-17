@@ -153,7 +153,7 @@
 - name: Download Wikibooks English
   ansible.builtin.command:
     cmd: wget --continue --no-verbose -O wikibooks_en_all.zim
-      https://download.kiwix.org/zim/wikibooks/wikibooks_en_all_nopic_2026-04.zim
+      https://download.kiwix.org/zim/wikibooks/wikibooks_en_all_maxi_2026-04.zim
     chdir: "{{ stack_path }}/kiwix/data"
     creates: "{{ stack_path }}/kiwix/data/wikibooks_en_all.zim"
   become_user: "{{ stack_user }}"

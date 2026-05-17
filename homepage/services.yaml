@@ -25,33 +25,37 @@
     - qBittorrent:
         href: http://qbit.morton.lan
         description: Downloads
-    - Nginx Proxy Manager:
-        href: http://npm.morton.lan
-        description: Reverse proxy
-    - Pi-hole:
-        href: http://pihole.morton.lan/admin/
-        description: DNS and ad blocking
     - SABnzbd:
         href: http://sabnzbd.morton.lan
         description: Newsgroups
+
 - Apps:
   - Glance:
       href: http://glance.morton.lan
       description: Dashboard
-  - Grafana:
-      href: https://malcyon.grafana.net
-      description: Metrics and logs
   - FreshRSS:
       href: http://freshrss.morton.lan
       description: RSS feed reader
+  - RomM:
+      href: http://romm.morton.lan
+      description: Game library manager
+  - Wiki:
+      href: http://wiki.morton.lan:8084
+      description: Offline Wikipedia and reference
   - WeatherBug:
       href: https://www.weatherbug.com/weather-forecast/hourly/fayetteville-ar-72701?tu=1&pu=1&wsu=1
       description: Weather Forecast
 
-- Games:
-  - RomM:
-      href: http://romm.morton.lan
-      description: Game library manager
+- Utilities:
+  - Grafana:
+      href: https://malcyon.grafana.net
+      description: Metrics and logs
+  - Nginx Proxy Manager:
+      href: http://npm.morton.lan
+      description: Reverse proxy
+  - Pi-hole:
+      href: http://pihole.morton.lan/admin/
+      description: DNS and ad blocking
 
 - Downloads:
     - Radarr:
