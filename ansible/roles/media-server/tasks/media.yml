@@ -117,6 +117,13 @@
     mode: "0644"
     force: false
 
+- name: Create bios directory
+  ansible.builtin.file:
+    path: /mnt/media/bios
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
 - name: Create kiwix data directory
   ansible.builtin.file:
     path: "{{ stack_path }}/kiwix/data"
@@ -157,6 +164,24 @@
     chdir: "{{ stack_path }}/kiwix/data"
     creates: "{{ stack_path }}/kiwix/data/wikibooks_en_all.zim"
   become_user: "{{ stack_user }}"
+
+- name: Create romm config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/romm/config"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
+- name: Deploy romm config.yml (initial setup only)
+  ansible.builtin.copy:
+    content: |
+      exclude:
+        platforms: []
+        roms: []
+    dest: "{{ stack_path }}/romm/config/config.yml"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+    force: false
 
 - name: Create seerr config directory
   ansible.builtin.file:

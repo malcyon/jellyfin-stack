@@ -290,6 +290,7 @@ services:
       - ./romm/assets:/romm/assets
       - ./romm/config:/romm/config
       - /mnt/media/roms:/romm/library/roms
+      - /mnt/media/bios:/romm/library/bios
       - ./romm/saves:/romm/library/saves
       - ./romm/states:/romm/library/states
       - ./romm/screenshots:/romm/library/screenshots
