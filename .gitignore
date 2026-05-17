@@ -1,6 +1,4 @@
 .env
-
-# Ansible Vault — encrypt before committing, or keep local only
 ansible/group_vars/media_servers/vault.yml
 
 # Ignore everything in app dirs by default
