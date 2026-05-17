@@ -23,6 +23,7 @@ immich/**
 freshrss/**
 romm/**
 homepage/logs/**
+kiwix/**
 
 # Allow clean qBittorrent files
 !qbittorrent/

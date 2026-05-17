@@ -117,6 +117,13 @@
     mode: "0644"
     force: false
 
+- name: Create kiwix data directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/kiwix/data"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+
 - name: Create seerr config directory
   ansible.builtin.file:
     path: "{{ stack_path }}/seerr"
