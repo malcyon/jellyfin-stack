@@ -25,13 +25,13 @@ The stack is deployed with Docker Compose and provisioned via Ansible. See [ansi
 | [Kiwix](https://github.com/kiwix/kiwix-tools) | Offline ZIM archive server (Wikipedia, etc.) |
 | [Tailscale](https://tailscale.com/) | WireGuard-based VPN for remote LAN access |
 | [Navidrome](https://github.com/navidrome/navidrome) | Subsonic-compatible music streaming server |
+| [Tdarr](https://github.com/HaveAGitGat/Tdarr) | Automated media transcoding (e.g. add AAC audio tracks) |
 
 ## Future plans
 
 ### Services to add
 | Service | Purpose | Notes |
 |---|---|---|
-| **Tdarr / Fileflows / Unmanic** | Automated media transcoding — add AAC audio tracks | Evaluate which fits workflow best |
 | **Restic + Restic REST Server** | Automated backups | Back up Jellyfin db, *arr databases, config dirs |
 
 ### Infrastructure

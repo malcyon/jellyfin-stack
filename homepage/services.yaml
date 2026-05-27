@@ -31,6 +31,12 @@
     - Navidrome:
         href: http://navidrome.morton.lan
         description: Music streaming
+    - Tdarr:
+        href: http://tdarr.morton.lan
+        description: Automated media transcoding
+        widget:
+          type: tdarr
+          url: http://tdarr:8265
 
 - Apps:
   - Glance:

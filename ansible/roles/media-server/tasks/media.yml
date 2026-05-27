@@ -229,6 +229,26 @@
     group: media
     mode: "0755"
 
+- name: Create tdarr directories
+  ansible.builtin.file:
+    path: "{{ stack_path }}/tdarr/{{ item }}"
+    state: directory
+    owner: "{{ stack_user }}"
+    group: media
+    mode: "0755"
+  loop:
+    - server
+    - configs
+    - logs
+
+- name: Create tdarr transcode temp directory on /home
+  ansible.builtin.file:
+    path: /home/tdarr-temp
+    state: directory
+    owner: "{{ stack_user }}"
+    group: media
+    mode: "0775"
+
 # --- Template deployment ---
 
 - name: Deploy .env from vault
