@@ -15,6 +15,17 @@ plugins:
   - fetchart
   - embedart
   - scrub
+  - convert
+
+# Manual transcode of lossless files to MP3. Run on demand with:
+#   docker exec beets beet convert format:FLAC
+# never_convert_lossy_files ensures already-lossy files are copied, not
+# re-encoded, so a broad query can't double-compress MP3/AAC.
+convert:
+  format: mp3
+  bitrate: 192k
+  never_convert_lossy_files: yes
+  embed: yes
 
 lyrics:
   auto: yes
