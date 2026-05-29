@@ -83,3 +83,11 @@
           url: http://sonarr:8989
           key: "{{HOMEPAGE_VAR_SONARR_KEY}}"
           enableQueue: true
+    - Lidarr:
+        href: http://lidarr.morton.lan
+        description: Music management
+        widget:
+          type: lidarr
+          url: http://lidarr:8686
+          key: "{{HOMEPAGE_VAR_LIDARR_KEY}}"
+          enableQueue: true

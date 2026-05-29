@@ -56,6 +56,18 @@ services:
     networks:
       - media
 
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - TZ=${TZ}
+    ports:
+      - "8191:8191"
+    restart: unless-stopped
+    networks:
+      - media
+
   radarr:
     image: linuxserver/radarr
     container_name: radarr
@@ -83,6 +95,22 @@ services:
       - "8989:8989"
     volumes:
       - ./sonarr:/config
+      - /mnt/media:/data
+    restart: unless-stopped
+    networks:
+      - media
+
+  lidarr:
+    image: linuxserver/lidarr
+    container_name: lidarr
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    ports:
+      - "8686:8686"
+    volumes:
+      - ./lidarr:/config
       - /mnt/media:/data
     restart: unless-stopped
     networks:
@@ -178,6 +206,7 @@ services:
       - HOMEPAGE_VAR_SEERR_KEY=${SEERR_API_KEY}
       - HOMEPAGE_VAR_RADARR_KEY=${RADARR_API_KEY}
       - HOMEPAGE_VAR_SONARR_KEY=${SONARR_API_KEY}
+      - HOMEPAGE_VAR_LIDARR_KEY=${LIDARR_API_KEY}
     restart: unless-stopped
     networks:
       - media
@@ -373,6 +402,20 @@ services:
     networks:
       - media
 
+  beets:
+    image: lscr.io/linuxserver/beets:latest
+    container_name: beets
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./beets:/config
+      - /mnt/media/music:/music
+    restart: unless-stopped
+    networks:
+      - media
+
   tailscale:
     image: tailscale/tailscale:latest
     container_name: tailscale
@@ -427,7 +470,7 @@ services:
       - ./tdarr/server:/app/server
       - ./tdarr/configs:/app/configs
       - ./tdarr/logs:/app/logs
-      - /home/tdarr-temp:/temp
+      - /mnt/media/tdarr-temp:/temp
       - /mnt/media:/media
     devices:
       - /dev/dri:/dev/dri

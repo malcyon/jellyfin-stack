@@ -85,6 +85,14 @@
     group: media
     mode: "0755"
 
+- name: Create lidarr config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/lidarr"
+    state: directory
+    owner: "{{ stack_user }}"
+    group: media
+    mode: "0755"
+
 - name: Create prowlarr config directory
   ansible.builtin.file:
     path: "{{ stack_path }}/prowlarr"
@@ -138,6 +146,54 @@
     state: directory
     owner: "{{ stack_user }}"
     mode: "0755"
+
+- name: Create beets config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/beets"
+    state: directory
+    owner: "{{ stack_user }}"
+    group: media
+    mode: "0755"
+
+- name: Copy beets config.yaml
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../beets/config.yaml"
+    dest: "{{ stack_path }}/beets/config.yaml"
+    owner: "{{ stack_user }}"
+    group: media
+    mode: "0644"
+  notify: Restart beets
+
+- name: Create beets cron log file
+  ansible.builtin.copy:
+    content: ""
+    dest: /var/log/beets-cron.log
+    owner: "{{ stack_user }}"
+    group: adm
+    mode: "0644"
+    force: false
+
+- name: Schedule hourly Beets pass over the music library
+  ansible.builtin.cron:
+    name: "beets-import"
+    minute: "30"
+    hour: "*"
+    job: "docker exec beets beet import -A -q /music/ >> /var/log/beets-cron.log 2>&1"
+    user: "{{ stack_user }}"
+
+- name: Install logrotate config for beets cron log
+  ansible.builtin.copy:
+    dest: /etc/logrotate.d/beets-cron
+    mode: "0644"
+    content: |
+      /var/log/beets-cron.log {
+          weekly
+          rotate 4
+          compress
+          missingok
+          notifempty
+          copytruncate
+      }
 
 - name: Create tailscale state directory
   ansible.builtin.file:
@@ -241,9 +297,9 @@
     - configs
     - logs
 
-- name: Create tdarr transcode temp directory on /home
+- name: Create tdarr transcode temp directory on /mnt/media
   ansible.builtin.file:
-    path: /home/tdarr-temp
+    path: /mnt/media/tdarr-temp
     state: directory
     owner: "{{ stack_user }}"
     group: media
@@ -275,6 +331,15 @@
     mode: "0644"
     force: false
   notify: Restart sonarr
+
+- name: Deploy lidarr config.xml from vault (initial setup only)
+  ansible.builtin.copy:
+    content: "{{ lookup('template', playbook_dir ~ '/templates/lidarr-config.xml.j2') }}"
+    dest: "{{ stack_path }}/lidarr/config.xml"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+    force: false
+  notify: Restart lidarr
 
 - name: Deploy prowlarr config.xml from vault (initial setup only)
   ansible.builtin.copy:
@@ -345,6 +410,39 @@
     cmd: mv freshrss-af-readability-master freshrss/extensions/af_readability
     chdir: "{{ stack_path }}"
     creates: "{{ stack_path }}/freshrss/extensions/af_readability"
+  become_user: "{{ stack_user }}"
+
+# --- MOTD cleanup ---
+
+- name: Disable noisy MOTD scripts
+  ansible.builtin.file:
+    path: "/etc/update-motd.d/{{ item }}"
+    mode: "0644"
+  loop:
+    - 10-help-text
+    - 50-motd-news
+    - 91-contract-ua-esm-status
+    - 91-release-upgrade
+
+- name: Disable Ubuntu Pro apt-news (ESM marketing in MOTD)
+  ansible.builtin.command:
+    cmd: pro config set apt_news=false
+  changed_when: false
+
+# --- Host CLI tools ---
+
+- name: Install pipx and ffmpeg for spotdl
+  ansible.builtin.apt:
+    name:
+      - pipx
+      - ffmpeg
+    state: present
+    update_cache: true
+
+- name: Install spotdl via pipx
+  ansible.builtin.command:
+    cmd: pipx install spotdl
+    creates: "/home/{{ stack_user }}/.local/bin/spotdl"
   become_user: "{{ stack_user }}"
 
 # --- Start stack ---

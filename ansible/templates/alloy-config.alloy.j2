@@ -106,3 +106,16 @@ loki.relabel "journal" {
     target_label  = "unit"
   }
 }
+
+// ===== Beets cron log =====
+local.file_match "beets_cron" {
+  path_targets = [{
+    __path__ = "/var/log/beets-cron.log",
+    job      = "beets-cron",
+  }]
+}
+
+loki.source.file "beets_cron" {
+  targets    = local.file_match.beets_cron.targets
+  forward_to = [loki.write.grafana_cloud.receiver]
+}

@@ -7,6 +7,7 @@ jellyfin/**
 qbittorrent/**
 radarr/**
 sonarr/**
+lidarr/**
 prowlarr/**
 seerr/**
 sabnzbd/**
@@ -20,6 +21,7 @@ degoog/**
 immich/**
 freshrss/**
 romm/**
+beets/**
 homepage/logs/**
 kiwix/**
 
@@ -27,6 +29,10 @@ kiwix/**
 !qbittorrent/
 !qbittorrent/qBittorrent/
 !qbittorrent/qBittorrent/categories.json
+
+# Allow tracked Beets config (library.db and logs stay ignored)
+!beets/
+!beets/config.yaml
 
 # Jellyfin runtime config is managed by Jellyfin itself — not tracked in git
 !jellyfin/

@@ -1,0 +1,32 @@
+directory: /music
+library: /config/library.db
+
+import:
+  copy: no
+  move: no
+  write: yes
+  resume: yes
+  incremental: yes
+  quiet_fallback: skip
+  autotag: yes
+
+plugins:
+  - lyrics
+  - fetchart
+  - embedart
+  - scrub
+
+lyrics:
+  auto: yes
+  synced: yes
+  sources:
+    - lrclib
+
+fetchart:
+  auto: yes
+
+embedart:
+  auto: yes
+
+scrub:
+  auto: yes

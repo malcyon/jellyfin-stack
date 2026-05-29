@@ -16,6 +16,12 @@
     chdir: "{{ stack_path }}"
   changed_when: true
 
+- name: Restart lidarr
+  ansible.builtin.command:
+    cmd: docker compose restart lidarr
+    chdir: "{{ stack_path }}"
+  changed_when: true
+
 - name: Restart prowlarr
   ansible.builtin.command:
     cmd: docker compose restart prowlarr
@@ -49,6 +55,12 @@
 - name: Restart freshrss
   ansible.builtin.command:
     cmd: docker compose restart freshrss
+    chdir: "{{ stack_path }}"
+  changed_when: true
+
+- name: Restart beets
+  ansible.builtin.command:
+    cmd: docker compose restart beets
     chdir: "{{ stack_path }}"
   changed_when: true
 

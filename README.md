@@ -11,7 +11,9 @@ The stack is deployed with Docker Compose and provisioned via Ansible. See [ansi
 | [Jellyfin](https://github.com/jellyfin/jellyfin) | Media server |
 | [Radarr](https://github.com/Radarr/Radarr) | Movie collection manager |
 | [Sonarr](https://github.com/Sonarr/Sonarr) | TV series collection manager |
+| [Lidarr](https://github.com/Lidarr/Lidarr) | Music collection manager |
 | [Prowlarr](https://github.com/Prowlarr/Prowlarr) | Indexer manager |
+| [FlareSolverr](https://github.com/FlareSolverr/FlareSolverr) | CloudFlare challenge bypass proxy for Prowlarr |
 | [Seerr](https://github.com/seerr-team/seerr) | Media request management |
 | [SABnzbd](https://github.com/sabnzbd/sabnzbd) | Usenet downloader |
 | [qBittorrent](https://github.com/qbittorrent/qBittorrent) | Torrent downloader |
@@ -25,6 +27,7 @@ The stack is deployed with Docker Compose and provisioned via Ansible. See [ansi
 | [Kiwix](https://github.com/kiwix/kiwix-tools) | Offline ZIM archive server (Wikipedia, etc.) |
 | [Tailscale](https://tailscale.com/) | WireGuard-based VPN for remote LAN access |
 | [Navidrome](https://github.com/navidrome/navidrome) | Subsonic-compatible music streaming server |
+| [Beets](https://github.com/beetbox/beets) | Music tag post-processor (lyrics, embedded art, MusicBrainz cleanup) |
 | [Tdarr](https://github.com/HaveAGitGat/Tdarr) | Automated media transcoding (e.g. add AAC audio tracks) |
 
 ## Future plans
