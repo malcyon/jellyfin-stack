@@ -77,6 +77,35 @@ Prefix with `docker exec -it beets`:
 | `beet missing` | Find tracks missing from albums |
 | `beet duplicates` | Find duplicates |
 
+### Transcoding lossless to MP3 (manual)
+
+The `convert` plugin re-encodes lossless files to MP3 192k. It is **not**
+automated — run it on demand. Targets must already be in Beets' library
+(i.e. imported by a cron pass first).
+
+```bash
+# Convert ALL lossless files in the library to MP3 192k:
+docker exec beets beet convert format:FLAC
+
+# Skip the confirmation prompt:
+docker exec beets beet convert -y format:FLAC
+```
+
+`never_convert_lossy_files: yes` in the config means a broad query copies
+already-lossy files instead of re-encoding them, so MP3/AAC are never
+double-compressed.
+
+**Test on one album first** — by default `beet convert` writes MP3s to a
+dest dir and *keeps* the original FLACs. Confirm the output and quality
+before deleting any originals (lossy transcode is one-way):
+
+```bash
+docker exec beets beet convert "format:FLAC albumartist:Rush album:Signals"
+```
+
+ffmpeg is bundled in the linuxserver/beets image, so no host dependency
+is needed for this.
+
 ### Adding plugins later
 
 To enable plugins that need API credentials (e.g. `lastgenre` needs a Last.fm API key, `acousticbrainz` etc.), edit `beets/config.yaml` and run the playbook — the `Restart beets` handler will pick up the change.
