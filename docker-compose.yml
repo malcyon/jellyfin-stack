@@ -336,7 +336,7 @@ services:
     # MariaDB cannot downgrade across majors, so an unpinned :latest jumping
     # to 13 on a pull would break this DB with no clean rollback. Bump the
     # major deliberately (and back up ./romm/db first), never incidentally.
-    image: mariadb:12
+    image: mariadb:12.2
     container_name: romm-db
     restart: unless-stopped
     environment:
