@@ -16,21 +16,44 @@
       widgets:
         - type: group
           widgets:
-            - type: reddit
-              subreddit: fayetteville
-              show-thumbnails: true
-            - type: reddit
-              subreddit: bentonville
-              show-thumbnails: true
-            - type: reddit
-              subreddit: arkansas
-              show-thumbnails: true
-            - type: reddit
-              subreddit: selfhosted
-              show-thumbnails: true
-            - type: reddit
-              subreddit: games
-              show-thumbnails: true
+            # Reddit blocks unauthenticated JSON API requests (403), which the
+            # native `reddit` widget relies on. The per-subreddit .rss (Atom)
+            # feeds are still served to normal clients, so use the rss widget.
+            - type: rss
+              title: r/fayetteville
+              limit: 10
+              collapse-after: 5
+              cache: 30m
+              feeds:
+                - url: https://www.reddit.com/r/fayetteville/.rss
+            - type: rss
+              title: r/bentonville
+              limit: 10
+              collapse-after: 5
+              cache: 30m
+              feeds:
+                - url: https://www.reddit.com/r/bentonville/.rss
+            - type: rss
+              title: r/arkansas
+              limit: 10
+              collapse-after: 5
+              cache: 30m
+              feeds:
+                - url: https://www.reddit.com/r/arkansas/.rss
+            - type: rss
+              title: r/selfhosted
+              limit: 10
+              collapse-after: 5
+              cache: 30m
+              feeds:
+                - url: https://www.reddit.com/r/selfhosted/.rss
+            - type: rss
+              title: r/games
+              limit: 10
+              collapse-after: 5
+              cache: 30m
+              feeds:
+                - url: https://www.reddit.com/r/games/.rss
             - type: custom-api
               title: L/technology
               cache: 10m
