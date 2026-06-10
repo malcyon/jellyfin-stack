@@ -37,6 +37,9 @@
         widget:
           type: tdarr
           url: http://tdarr:8265
+    - Immich:
+        href: http://photos.morton.lan
+        description: Photo library
 
 - Apps:
   - Glance:
