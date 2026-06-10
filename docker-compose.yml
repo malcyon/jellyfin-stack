@@ -277,6 +277,23 @@ services:
 #    networks:
 #      - media
 
+  onedrive:
+    image: driveone/onedrive:latest
+    container_name: onedrive
+    restart: unless-stopped
+    environment:
+      # Run the sync as donald (1000) : media (1001) so files are group-readable
+      - ONEDRIVE_UID=${PUID}
+      - ONEDRIVE_GID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      # Client state: config, sync_list, refresh_token, items.sqlite3
+      - ./onedrive/config:/onedrive/conf
+      # Synced data lives on the big media drive (sync_dir in config = /onedrive/data)
+      - /mnt/media/onedrive:/onedrive/data
+    networks:
+      - media
+
   freshrss:
     image: freshrss/freshrss:latest
     container_name: freshrss

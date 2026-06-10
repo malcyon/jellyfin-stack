@@ -62,5 +62,10 @@ vault_romm_auth_secret_key: REPLACE_ME    # random string, e.g.: openssl rand -h
 
 vault_tailscale_authkey: REPLACE_ME    # Tailscale admin console → Settings → Keys → Generate auth key
 
+# OneDrive sync — base64 of the refresh_token from the machine where the
+# onedrive client was last authorized. Generate paste-safe with:
+#   base64 -w0 ~/.config/onedrive/refresh_token
+vault_onedrive_refresh_token_b64: REPLACE_ME
+
 # Uncomment if enabling Immich
 # vault_immich_db_password: REPLACE_ME

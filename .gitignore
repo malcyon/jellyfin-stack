@@ -19,6 +19,7 @@ pihole/**
 !pihole/etc-dnsmasq.d/02-local-reservations.conf
 degoog/**
 immich/**
+onedrive/**
 freshrss/**
 romm/**
 beets/**

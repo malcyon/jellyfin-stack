@@ -305,6 +305,56 @@
     group: media
     mode: "0775"
 
+# --- OneDrive sync ---
+
+- name: Create OneDrive data directory on media drive
+  ansible.builtin.file:
+    path: /mnt/media/onedrive
+    state: directory
+    owner: "{{ stack_user }}"
+    group: media
+    mode: "0775"
+
+- name: Create OneDrive config directory
+  ansible.builtin.file:
+    path: "{{ stack_path }}/onedrive/config"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0700"
+
+- name: Deploy OneDrive client config
+  ansible.builtin.copy:
+    content: |
+      # sync_dir is the in-container path; the host bind mount points it at
+      # /mnt/media/onedrive (see docker-compose.yml).
+      sync_dir = "/onedrive/data"
+    dest: "{{ stack_path }}/onedrive/config/config"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+
+- name: Deploy OneDrive sync_list (Pictures only for now)
+  ansible.builtin.copy:
+    # Leading slash anchors to the sync root, so this matches ONLY the top-level
+    # /Pictures folder. An unanchored "Pictures/" also matches nested folders
+    # named Pictures anywhere in the account (e.g. Documents/Ancestry/Pictures).
+    content: |
+      /Pictures/*
+    dest: "{{ stack_path }}/onedrive/config/sync_list"
+    owner: "{{ stack_user }}"
+    mode: "0644"
+
+- name: Seed OneDrive refresh token from vault (initial setup only)
+  ansible.builtin.copy:
+    # Stored base64-encoded in the vault so the opaque ~400-char token can't be
+    # mangled by quoting/newlines on the way in. Decoded here to the exact bytes.
+    content: "{{ vault_onedrive_refresh_token_b64 | b64decode }}"
+    dest: "{{ stack_path }}/onedrive/config/refresh_token"
+    owner: "{{ stack_user }}"
+    mode: "0600"
+    # force:false — the client rotates this token itself; never clobber it on
+    # later runs or we'd revert to a stale token and break auth.
+    force: false
+
 # --- Template deployment ---
 
 - name: Deploy .env from vault
