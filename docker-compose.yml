@@ -220,62 +220,69 @@ services:
 #      - "4444:4444"
 #    restart: unless-stopped
 
-#  immich-server:
-#    image: ghcr.io/immich-app/immich-server:release
-#    container_name: immich-server
-#    restart: unless-stopped
-#    ports:
-#      - "2283:2283"
-#    volumes:
-#      - ./immich/data:/usr/src/app/upload
-#      - /data/OneDrive/Pictures/Family Pics:/photos
-#      - /etc/localtime:/etc/localtime:ro
-#    environment:
-#      - DB_HOSTNAME=immich-postgres
-#      - DB_USERNAME=immich
-#      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
-#      - DB_DATABASE_NAME=immich
-#      - REDIS_HOSTNAME=immich-redis
-#      - TZ=${TZ}
-#    depends_on:
-#      - immich-redis
-#      - immich-postgres
-#    networks:
-#      - media
- 
-#  immich-machine-learning:
-#    image: ghcr.io/immich-app/immich-machine-learning:release
-#    container_name: immich-machine-learning
-#    restart: unless-stopped
-#    volumes:
-#      - ./immich/ml-cache:/cache
-#    environment:
-#      - TZ=${TZ}
-#    networks:
-#      - media
- 
-#  immich-redis:
-#    image: redis:7-alpine
-#    container_name: immich-redis
-#    restart: unless-stopped
-#    volumes:
-#      - ./immich/redis:/data
-#    networks:
-#      - media
- 
-#  immich-postgres:
-#    image: tensorchord/pgvecto-rs:pg16-v0.2.0
-#    container_name: immich-postgres
-#    restart: unless-stopped
-#    environment:
-#      - POSTGRES_USER=immich
-#      - POSTGRES_PASSWORD=${IMMICH_DB_PASSWORD}
-#      - POSTGRES_DB=immich
-#      - POSTGRES_INITDB_ARGS=--data-checksums
-#    volumes:
-#      - ./immich/postgres:/var/lib/postgresql/data
-#    networks:
-#      - media
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:release
+    container_name: immich-server
+    restart: unless-stopped
+    ports:
+      - "2283:2283"
+    volumes:
+      # Immich-managed storage (thumbnails, transcodes, uploads) on the big drive
+      - /mnt/media/immich:/data
+      # OneDrive-synced photos, mounted READ-ONLY as an external library
+      - /mnt/media/onedrive/Pictures:/external/pictures:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - DB_HOSTNAME=immich-postgres
+      - DB_USERNAME=immich
+      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
+      - DB_DATABASE_NAME=immich
+      - REDIS_HOSTNAME=immich-redis
+      - TZ=${TZ}
+    depends_on:
+      - immich-redis
+      - immich-postgres
+    networks:
+      - media
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:release
+    container_name: immich-machine-learning
+    restart: unless-stopped
+    volumes:
+      - ./immich/ml-cache:/cache
+    environment:
+      - TZ=${TZ}
+    networks:
+      - media
+
+  immich-redis:
+    image: valkey/valkey:9
+    container_name: immich-redis
+    restart: unless-stopped
+    healthcheck:
+      test: redis-cli ping || exit 1
+    networks:
+      - media
+
+  immich-postgres:
+    # Immich's Postgres must use this VectorChord/pgvecto.rs image, and the
+    # immich-server version is coupled to the DB extension version. Bump only
+    # deliberately — read Immich's release notes and back up ./immich/postgres
+    # first — never let it drift on an incidental pull.
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    container_name: immich-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=immich
+      - POSTGRES_PASSWORD=${IMMICH_DB_PASSWORD}
+      - POSTGRES_DB=immich
+      - POSTGRES_INITDB_ARGS=--data-checksums
+    volumes:
+      - ./immich/postgres:/var/lib/postgresql/data
+    shm_size: 128mb
+    networks:
+      - media
 
   onedrive:
     image: driveone/onedrive:latest

@@ -355,6 +355,26 @@
     # later runs or we'd revert to a stale token and break auth.
     force: false
 
+# --- Immich ---
+
+- name: Create Immich storage directory on media drive (uploads, thumbnails, transcodes)
+  ansible.builtin.file:
+    path: /mnt/media/immich
+    state: directory
+    owner: "{{ stack_user }}"
+    group: media
+    mode: "0775"
+
+- name: Create Immich config directories (postgres on local SSD, ML cache)
+  ansible.builtin.file:
+    path: "{{ stack_path }}/immich/{{ item }}"
+    state: directory
+    owner: "{{ stack_user }}"
+    mode: "0755"
+  loop:
+    - postgres
+    - ml-cache
+
 # --- Template deployment ---
 
 - name: Deploy .env from vault

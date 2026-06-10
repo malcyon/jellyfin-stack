@@ -67,5 +67,5 @@ vault_tailscale_authkey: REPLACE_ME    # Tailscale admin console → Settings �
 #   base64 -w0 ~/.config/onedrive/refresh_token
 vault_onedrive_refresh_token_b64: REPLACE_ME
 
-# Uncomment if enabling Immich
-# vault_immich_db_password: REPLACE_ME
+# Immich Postgres password — alphanumeric only (no symbols), e.g.: openssl rand -hex 24
+vault_immich_db_password: REPLACE_ME
