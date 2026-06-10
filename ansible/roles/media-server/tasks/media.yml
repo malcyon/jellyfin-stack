@@ -495,6 +495,11 @@
     creates: "/home/{{ stack_user }}/.local/bin/spotdl"
   become_user: "{{ stack_user }}"
 
+- name: Install exiftool for photo date backfill
+  ansible.builtin.apt:
+    name: libimage-exiftool-perl
+    state: present
+
 # --- Start stack ---
 
 - name: Start media stack
