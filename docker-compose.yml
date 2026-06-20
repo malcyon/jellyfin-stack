@@ -418,6 +418,7 @@ services:
     environment:
       - ND_LOGLEVEL=info
       - ND_SCANSCHEDULE=1h
+      - ND_SCANNER_PURGEMISSING=full
       - ND_SESSIONTIMEOUT=24h
       - ND_TRANSCODINGCACHESIZE=100MB
       - ND_DEFAULTLANGUAGE=en
