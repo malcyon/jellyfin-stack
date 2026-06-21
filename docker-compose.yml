@@ -477,6 +477,20 @@ services:
     networks:
       - media
 
+  sbv:
+    image: ghcr.io/lowcarbdev/sbv:stable
+    container_name: sbv
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    ports:
+      - "8088:8081"
+    volumes:
+      - /mnt/media/sms:/data
+    restart: unless-stopped
+    networks:
+      - media
+
   tdarr:
     image: ghcr.io/haveagitgat/tdarr:latest
     container_name: tdarr

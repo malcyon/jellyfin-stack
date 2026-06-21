@@ -355,6 +355,16 @@
     # later runs or we'd revert to a stale token and break auth.
     force: false
 
+# --- sbv ---
+
+- name: Create sbv data directory on media drive
+  ansible.builtin.file:
+    path: /mnt/media/sms
+    state: directory
+    owner: "{{ stack_user }}"
+    group: media
+    mode: "0775"
+
 # --- Immich ---
 
 - name: Create Immich storage directory on media drive (uploads, thumbnails, transcodes)
