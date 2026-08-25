@@ -1,0 +1,131 @@
+# Managed by Ansible — roles/windows-vm. Runs once, at first logon, elevated.
+# Everything here logs to C:\Windows\Temp\guest-setup.log so a failure can be
+# read back afterwards instead of guessed at.
+$ErrorActionPreference = 'Continue'
+$log = 'C:\Windows\Temp\guest-setup.log'
+function Log($m) { "{0}  {1}" -f (Get-Date -Format o), $m | Tee-Object -FilePath $log -Append | Out-Null }
+function Step($name, $block) {
+    try { & $block; Log "OK    $name" }
+    catch { Log "FAIL  $name :: $($_.Exception.Message)" }
+}
+
+Log "=== guest-setup start ==="
+
+# --- Console QuickEdit off --------------------------------------------------
+# With QuickEdit on (the default), a single click inside a console window puts
+# it in selection mode, which BLOCKS the running process on its next write.
+# A stray click while someone peeks at the console would otherwise wedge an
+# agent's job indefinitely, with no error anywhere.
+Step 'disable console QuickEdit' {
+    Set-ItemProperty 'HKCU:\Console' QuickEdit 0 -Type DWord
+    New-Item -Path 'HKCU:\Console\%SystemRoot%_System32_WindowsPowerShell_v1.0_powershell.exe' -Force | Out-Null
+    Set-ItemProperty 'HKCU:\Console\%SystemRoot%_System32_WindowsPowerShell_v1.0_powershell.exe' QuickEdit 0 -Type DWord
+}
+
+# --- Permanent auto-logon ---------------------------------------------------
+# WinUAE is a GUI app and cannot render in session 0. Without a standing
+# interactive desktop, an agent that SSHes in and launches it gets a process
+# with nowhere to draw. The unattend's own AutoLogon uses AutoLogonCount, which
+# decrements to zero — this replaces it with the permanent form.
+# The password lands in the registry in clear text, same as it already is in
+# autounattend.xml. Acceptable for a throwaway test VM; do not reuse the
+# password anywhere real.
+Step 'permanent auto-logon' {
+    $wl = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
+    Set-ItemProperty $wl AutoAdminLogon    '1'
+    Set-ItemProperty $wl DefaultUserName   '{{ winvm_admin_user }}'
+    Set-ItemProperty $wl DefaultPassword   '{{ vault_windows_admin_password }}'
+    Set-ItemProperty $wl DefaultDomainName $env:COMPUTERNAME
+    Remove-ItemProperty $wl AutoLogonCount -ErrorAction SilentlyContinue
+}
+
+# --- No lock screen, no screensaver, no password on wake --------------------
+Step 'disable lock screen' {
+    $p = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization'
+    New-Item -Path $p -Force | Out-Null
+    Set-ItemProperty $p NoLockScreen 1 -Type DWord
+    Set-ItemProperty 'HKCU:\Control Panel\Desktop' ScreenSaveActive '0'
+    powercfg /setacvalueindex SCHEME_CURRENT SUB_NONE CONSOLELOCK 0
+    powercfg /setactive SCHEME_CURRENT
+}
+
+# --- Wait for outbound networking ------------------------------------------
+# Add-WindowsCapability pulls OpenSSH from Windows Update, so it needs the NAT
+# route to be up. The static IP is configured by an earlier first-logon
+# command, but DHCP-less interfaces take a moment to settle.
+# Test-NetConnection is not used here: its timeout is not configurable, it
+# writes a progress bar that outlives the call, and a bounded iteration count
+# says nothing about bounded wall-clock time. This probes DNS — the thing
+# Add-WindowsCapability actually needs — with an explicit deadline.
+Step 'wait for network' {
+    $ok = $false
+    $deadline = (Get-Date).AddMinutes(3)
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $null = [System.Net.Dns]::GetHostAddresses('windowsupdate.microsoft.com')
+            $ok = $true; break
+        } catch { Start-Sleep -Seconds 5 }
+    }
+    Log "name resolution working: $ok"
+}
+
+# --- OpenSSH Server ---------------------------------------------------------
+Step 'install OpenSSH.Server' {
+    $cap = Get-WindowsCapability -Online -Name 'OpenSSH.Server*' | Select-Object -First 1
+    Log "OpenSSH.Server state before: $($cap.State)"
+    if ($cap.State -ne 'Installed') { Add-WindowsCapability -Online -Name $cap.Name | Out-Null }
+}
+Step 'enable sshd' {
+    Set-Service -Name sshd -StartupType Automatic
+    Start-Service sshd
+}
+Step 'sshd firewall rule' {
+    if (-not (Get-NetFirewallRule -Name 'winvm-ssh' -ErrorAction SilentlyContinue)) {
+        New-NetFirewallRule -Name 'winvm-ssh' -DisplayName 'winvm ssh (22)' `
+            -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22 | Out-Null
+    }
+}
+# For a member of Administrators, sshd reads this file and NOT the user's
+# ~/.ssh/authorized_keys — and it refuses the file outright unless only
+# SYSTEM and Administrators can write it. SIDs, not names: group names are
+# localised.
+Step 'authorized key' {
+    $akf = Join-Path $env:ProgramData 'ssh\administrators_authorized_keys'
+    New-Item -ItemType Directory -Force -Path (Split-Path $akf) | Out-Null
+    Set-Content -Path $akf -Value '{{ winvm_ssh_pubkey }}' -Encoding ascii
+    icacls $akf /inheritance:r /grant '*S-1-5-32-544:F' /grant '*S-1-5-18:F' | Out-Null
+}
+Step 'powershell as default ssh shell' {
+    New-Item -Path 'HKLM:\SOFTWARE\OpenSSH' -Force | Out-Null
+    New-ItemProperty -Path 'HKLM:\SOFTWARE\OpenSSH' -Name DefaultShell `
+        -Value 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' `
+        -PropertyType String -Force | Out-Null
+}
+
+# --- virtio drivers AND the QEMU guest agent --------------------------------
+# TWO installers, and both are required. This took three attempts to pin down:
+#
+#   guest-agent\qemu-ga-x86_64.msi  installs the agent SERVICE only
+#   virtio-win-gt-x64.msi           installs the DRIVERS only (13 of them,
+#                                   including vioser.sys)
+#
+# The agent speaks virtio-serial, for which Windows has no in-box driver — and
+# this VM otherwise needs none, since it boots on SATA and e1000e. Install the
+# agent alone and you get a service with no channel; install the drivers alone
+# and you get a channel with no service. Either way libvirt reports the channel
+# as state='disconnected' and `virsh domifaddr --source agent` fails.
+Step 'virtio drivers + guest agent' {
+    $v = Get-Volume | Where-Object { $_.FileSystemLabel -like 'virtio-win*' } | Select-Object -First 1
+    if (-not $v) { throw 'virtio-win volume not found' }
+    foreach ($rel in @('virtio-win-gt-x64.msi', 'guest-agent\qemu-ga-x86_64.msi')) {
+        $msi = '{0}:\{1}' -f $v.DriveLetter, $rel
+        if (-not (Test-Path $msi)) { Log "SKIP  not found: $msi"; continue }
+        $p = Start-Process msiexec.exe -ArgumentList '/i', $msi, '/qn', '/norestart' -Wait -PassThru
+        Log "msiexec $rel exit code: $($p.ExitCode)"
+    }
+    Start-Sleep -Seconds 5
+    $svc = Get-Service QEMU-GA -ErrorAction SilentlyContinue
+    Log "guest agent service: $(if ($svc) { "$($svc.Name)=$($svc.Status)" } else { 'ABSENT' })"
+}
+
+Log "=== guest-setup done ==="

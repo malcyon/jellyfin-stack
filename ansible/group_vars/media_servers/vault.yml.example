@@ -69,3 +69,8 @@ vault_onedrive_refresh_token_b64: REPLACE_ME
 
 # Immich Postgres password — alphanumeric only (no symbols), e.g.: openssl rand -hex 24
 vault_immich_db_password: REPLACE_ME
+
+# Local administrator password for the Windows 11 test VM (roles/windows-vm).
+# Must satisfy Windows complexity rules or unattended setup will reject it:
+# 8+ chars with three of upper / lower / digit / symbol.
+vault_windows_admin_password: REPLACE_ME

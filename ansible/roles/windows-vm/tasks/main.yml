@@ -1,0 +1,449 @@
+---
+- name: Assert the Windows admin password is in the vault
+  ansible.builtin.assert:
+    that:
+      - vault_windows_admin_password is defined
+      - vault_windows_admin_password | length >= 8
+    fail_msg: >-
+      vault_windows_admin_password is missing or too short. Add it with
+      `ansible-vault edit ansible/group_vars/media_servers/vault.yml`.
+      Windows rejects weak passwords during unattended setup.
+
+- name: Check for /dev/kvm
+  ansible.builtin.stat:
+    path: /dev/kvm
+  register: winvm_kvm
+
+- name: Assert the host supports hardware virtualisation
+  ansible.builtin.assert:
+    that:
+      - winvm_kvm.stat.exists
+    fail_msg: >-
+      /dev/kvm is missing. Enable VT-x/AMD-V in the BIOS, or check that the
+      kvm_intel/kvm_amd module is loaded.
+
+- name: Install QEMU/KVM, libvirt and vTPM support
+  ansible.builtin.apt:
+    name:
+      - qemu-system-x86
+      - qemu-utils
+      - libvirt-daemon-system
+      - libvirt-clients
+      - ovmf            # UEFI firmware — Windows 11 will not install on BIOS
+      - swtpm           # emulated TPM 2.0 — likewise required
+      - swtpm-tools
+      - xorriso         # builds the autounattend ISO
+      - dnsmasq-base    # DHCP for the NAT network
+      - socat           # host -> VM port forwards
+    state: present
+    update_cache: true
+
+- name: Install desktop console tools
+  ansible.builtin.apt:
+    name:
+      - virt-manager
+      - virt-viewer
+    state: present
+  when: winvm_install_desktop_tools | bool
+
+# libvirt's nftables backend writes to its own nft table, so its ACCEPT rules
+# cannot override the `iptables -P FORWARD DROP` that Docker sets, and VMs end
+# up with no outbound network. Pinning libvirt to the iptables backend puts its
+# rules at the top of the same chain Docker uses. Docker is installed on both
+# the media server and this workstation, so this matters in both places.
+#
+# firewall_backend only exists in newer libvirt — the 12.x on the media server
+# has it, the 10.x on Ubuntu 24.04 predates it and always used iptables anyway.
+# Detected from the shipped config rather than version-matched, so it keeps
+# working as hosts get upgraded.
+- name: Check whether libvirt supports firewall_backend
+  ansible.builtin.command: grep -q firewall_backend /etc/libvirt/network.conf
+  register: winvm_fw_backend
+  changed_when: false
+  failed_when: false
+
+- name: Pin libvirt's firewall backend to iptables (coexist with Docker)
+  ansible.builtin.lineinfile:
+    path: /etc/libvirt/network.conf
+    regexp: '^#?\s*firewall_backend\s*='
+    line: 'firewall_backend = "iptables"'
+    owner: root
+    group: root
+    mode: "0644"
+  when: winvm_fw_backend.rc == 0
+  notify: Restart libvirt network daemon
+
+# Deliberately not `service: name=libvirtd`. Ubuntu 26.04 ships libvirt 12,
+# which may run either the monolithic libvirtd or the modular virt*d daemons —
+# both are socket-activated by the package, and naming the wrong one either
+# fails or starts a daemon that fights the other. Poking virsh activates
+# whichever is configured.
+- name: Wait for libvirt to accept connections
+  ansible.builtin.command: virsh -c qemu:///system version
+  register: winvm_virsh
+  until: winvm_virsh.rc == 0
+  retries: 10
+  delay: 3
+  changed_when: false
+
+- name: Add {{ winvm_user }} to the libvirt and kvm groups
+  ansible.builtin.user:
+    name: "{{ winvm_user }}"
+    groups: libvirt,kvm
+    append: true
+  register: winvm_groups
+
+# Group membership is granted at login, so an already-open desktop session
+# keeps its old credentials and virt-manager fails with "Unable to connect to
+# libvirt qemu:///system — verify that the libvirtd daemon is running". The
+# daemon is fine; the session simply is not in the libvirt group yet.
+- name: Check whether the current login session has the libvirt group
+  ansible.builtin.command: id -nG {{ winvm_user }}
+  register: winvm_id_groups
+  changed_when: false
+
+- name: Warn if the desktop session predates the group change
+  ansible.builtin.debug:
+    msg: >-
+      {{ winvm_user }} is in the libvirt group, but any login session opened
+      before that still is not. If virt-manager says it cannot connect to
+      qemu:///system, log out and back in — or run it right now as
+      `sg libvirt -c virt-manager`. The libvirtd daemon is not the problem.
+  when: winvm_groups.changed
+
+- name: Flush handlers so libvirt picks up the firewall backend before we define networks
+  ansible.builtin.meta: flush_handlers
+
+# --- Storage layout ---------------------------------------------------------
+
+- name: Create VM directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: kvm
+    mode: "0755"
+  loop:
+    - "{{ winvm_base_dir }}"
+    - "{{ winvm_iso_dir }}"
+    - "{{ winvm_state_dir }}"
+
+# virt-aa-helper builds a per-domain AppArmor profile from the domain XML, but
+# it is conservative about paths outside /var/lib/libvirt. Grant the VM tree
+# explicitly so qemu can open the disk and ISOs from /home/vms.
+- name: Allow qemu to reach {{ winvm_base_dir }} under AppArmor
+  ansible.builtin.blockinfile:
+    path: /etc/apparmor.d/local/abstractions/libvirt-qemu
+    create: true
+    owner: root
+    group: root
+    mode: "0644"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK windows-vm"
+    block: |
+      "{{ winvm_base_dir }}/" r,
+      "{{ winvm_base_dir }}/**" rwk,
+  notify: Reload AppArmor
+
+# --- Install media ----------------------------------------------------------
+
+- name: Check whether the Windows ISO is already on the server
+  ansible.builtin.stat:
+    path: "{{ winvm_iso_path }}"
+    get_checksum: false
+  register: winvm_iso
+
+- name: Download the Windows ISO
+  ansible.builtin.get_url:
+    url: "{{ winvm_iso_url }}"
+    dest: "{{ winvm_iso_path }}"
+    owner: root
+    group: kvm
+    mode: "0644"
+  when:
+    - not winvm_iso.stat.exists
+    - winvm_iso_url | length > 0
+
+# remote_src when the target is this machine: otherwise Ansible pushes the
+# whole 6.7 GB through its file-transfer path instead of just copying it.
+- name: Place the Windows ISO from winvm_iso_src
+  ansible.builtin.copy:
+    src: "{{ winvm_iso_src }}"
+    dest: "{{ winvm_iso_path }}"
+    remote_src: "{{ (ansible_connection | default('ssh')) == 'local' }}"
+    owner: root
+    group: kvm
+    mode: "0644"
+  when:
+    - not winvm_iso.stat.exists
+    - winvm_iso_url | length == 0
+    - winvm_iso_src | length > 0
+
+- name: Re-check for the Windows ISO
+  ansible.builtin.stat:
+    path: "{{ winvm_iso_path }}"
+    get_checksum: false
+  register: winvm_iso
+
+- name: Fail with instructions if the Windows ISO is missing
+  ansible.builtin.fail:
+    msg: |
+      No Windows ISO at {{ winvm_iso_path }} on the media server.
+
+      The Evaluation Center gates the download behind a registration form, so
+      Ansible cannot fetch it unattended. Download it once from
+        https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise
+      then either:
+        * set winvm_iso_src to the local path and re-run, or
+        * scp it to {{ winvm_iso_path }} yourself, or
+        * set winvm_iso_url to a link the server can reach.
+  when: not winvm_iso.stat.exists
+
+# Set unconditionally: the ISO is just as likely to have been copied into place
+# by hand (the README offers that route) as fetched by the tasks above, and a
+# root-only ISO fails at domain start with a bare "permission denied".
+- name: Ensure the Windows ISO is readable by qemu
+  ansible.builtin.file:
+    path: "{{ winvm_iso_path }}"
+    owner: root
+    group: kvm
+    mode: "0644"
+
+- name: Download the virtio-win driver ISO
+  ansible.builtin.get_url:
+    url: "{{ winvm_virtio_iso_url }}"
+    dest: "{{ winvm_virtio_iso_path }}"
+    owner: root
+    group: kvm
+    mode: "0644"
+    force: false
+
+# --- autounattend ISO -------------------------------------------------------
+
+- name: Create the autounattend staging directory
+  ansible.builtin.file:
+    path: "{{ winvm_state_dir }}/unattend"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+# Staged into the unattend ISO rather than downloaded by the guest, so first
+# logon does not depend on the VM having working internet.
+- name: Download the WinUAE installer into the unattend staging directory
+  ansible.builtin.get_url:
+    url: "{{ winvm_winuae_url }}"
+    dest: "{{ winvm_state_dir }}/unattend/{{ winvm_winuae_msi }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: winvm_install_winuae | bool
+  register: winvm_winuae_dl
+
+- name: Stage the Kickstart ROMs into the unattend ISO
+  ansible.builtin.copy:
+    src: "{{ winvm_kickstart_src }}/"
+    dest: "{{ winvm_state_dir }}/unattend/kickstarts/"
+    remote_src: "{{ (ansible_connection | default('ssh')) == 'local' }}"
+    owner: root
+    group: root
+    mode: "0644"
+    directory_mode: "0755"
+  when: winvm_kickstart_src | length > 0
+  register: winvm_kickstarts
+
+- name: Render the guest setup script into the unattend ISO
+  ansible.builtin.template:
+    src: guest-setup.ps1.j2
+    dest: "{{ winvm_state_dir }}/unattend/guest-setup.ps1"
+    owner: root
+    group: root
+    mode: "0600"
+  register: winvm_guest_setup
+
+- name: Render autounattend.xml
+  ansible.builtin.template:
+    src: autounattend.xml.j2
+    dest: "{{ winvm_state_dir }}/unattend/autounattend.xml"
+    owner: root
+    group: root
+    mode: "0600"
+  register: winvm_unattend
+
+- name: Check for the autounattend ISO
+  ansible.builtin.stat:
+    path: "{{ winvm_state_dir }}/unattend.iso"
+    get_checksum: false
+  register: winvm_unattend_iso
+
+- name: Build the autounattend ISO
+  ansible.builtin.command:
+    argv:
+      - xorriso
+      - -as
+      - mkisofs
+      - -quiet
+      - -V
+      - UNATTEND
+      - -J
+      - -r
+      - -o
+      - "{{ winvm_state_dir }}/unattend.iso"
+      - "{{ winvm_state_dir }}/unattend"
+  when: winvm_unattend.changed or (winvm_winuae_dl.changed | default(false)) or (winvm_kickstarts.changed | default(false)) or winvm_guest_setup.changed or not winvm_unattend_iso.stat.exists
+  changed_when: true
+
+# Contains the admin password in plaintext, so keep it off the world-readable
+# path. libvirt chowns it to libvirt-qemu when the domain starts.
+- name: Restrict the autounattend ISO
+  ansible.builtin.file:
+    path: "{{ winvm_state_dir }}/unattend.iso"
+    owner: root
+    group: kvm
+    mode: "0640"
+
+# --- libvirt network --------------------------------------------------------
+
+- name: List defined libvirt networks
+  ansible.builtin.command: virsh net-list --all --name
+  register: winvm_nets_all
+  changed_when: false
+
+- name: List running libvirt networks
+  ansible.builtin.command: virsh net-list --name
+  register: winvm_nets_running
+  changed_when: false
+
+- name: Stop libvirt's default network (its dnsmasq collides with Pi-hole on :53)
+  ansible.builtin.command: virsh net-destroy default
+  when:
+    - winvm_disable_default_network | bool
+    - "'default' in winvm_nets_running.stdout_lines"
+  changed_when: true
+
+- name: Check whether the default network autostarts
+  ansible.builtin.stat:
+    path: /etc/libvirt/qemu/networks/autostart/default.xml
+  register: winvm_default_autostart
+
+- name: Disable autostart on libvirt's default network
+  ansible.builtin.command: virsh net-autostart --disable default
+  when:
+    - winvm_disable_default_network | bool
+    - winvm_default_autostart.stat.exists
+  changed_when: true
+
+- name: Render the {{ winvm_network_name }} network definition
+  ansible.builtin.template:
+    src: winvm-network.xml.j2
+    dest: "{{ winvm_state_dir }}/{{ winvm_network_name }}-network.xml"
+    owner: root
+    group: root
+    mode: "0644"
+  register: winvm_net_xml
+
+- name: Define the {{ winvm_network_name }} network
+  ansible.builtin.command: "virsh net-define {{ winvm_state_dir }}/{{ winvm_network_name }}-network.xml"
+  when: winvm_net_xml.changed or winvm_network_name not in winvm_nets_all.stdout_lines
+  changed_when: true
+  notify: Restart winvm network
+
+- name: Flush handlers so the network is running before the domain is defined
+  ansible.builtin.meta: flush_handlers
+
+- name: Check whether the {{ winvm_network_name }} network autostarts
+  ansible.builtin.stat:
+    path: "/etc/libvirt/qemu/networks/autostart/{{ winvm_network_name }}.xml"
+  register: winvm_net_autostart
+
+- name: Enable autostart on the {{ winvm_network_name }} network
+  ansible.builtin.command: "virsh net-autostart {{ winvm_network_name }}"
+  when: not winvm_net_autostart.stat.exists
+  changed_when: true
+
+- name: Re-list running libvirt networks
+  ansible.builtin.command: virsh net-list --name
+  register: winvm_nets_running
+  changed_when: false
+
+- name: Start the {{ winvm_network_name }} network
+  ansible.builtin.command: "virsh net-start {{ winvm_network_name }}"
+  when: winvm_network_name not in winvm_nets_running.stdout_lines
+  changed_when: true
+
+# --- Domain -----------------------------------------------------------------
+
+- name: Create the VM disk
+  ansible.builtin.command:
+    argv:
+      - qemu-img
+      - create
+      - -f
+      - qcow2
+      - "{{ winvm_disk_path }}"
+      - "{{ winvm_disk_gb }}G"
+  args:
+    creates: "{{ winvm_disk_path }}"
+
+- name: Render the domain definition
+  ansible.builtin.template:
+    src: winvm-domain.xml.j2
+    dest: "{{ winvm_state_dir }}/{{ winvm_name }}.xml"
+    owner: root
+    group: root
+    mode: "0644"
+  register: winvm_domain_xml
+
+- name: List defined domains
+  ansible.builtin.command: virsh list --all --name
+  register: winvm_domains
+  changed_when: false
+
+- name: Define the {{ winvm_name }} domain
+  ansible.builtin.command: "virsh define {{ winvm_state_dir }}/{{ winvm_name }}.xml"
+  when: winvm_domain_xml.changed or winvm_name not in winvm_domains.stdout_lines
+  changed_when: true
+
+- name: Check whether the {{ winvm_name }} domain autostarts
+  ansible.builtin.stat:
+    path: "/etc/libvirt/qemu/autostart/{{ winvm_name }}.xml"
+  register: winvm_domain_autostart
+
+- name: Set domain autostart
+  ansible.builtin.command: >-
+    virsh autostart {{ '' if winvm_autostart | bool else '--disable' }} {{ winvm_name }}
+  when: winvm_domain_autostart.stat.exists != (winvm_autostart | bool)
+  changed_when: true
+
+- name: Install the winvm control script
+  ansible.builtin.template:
+    src: winvm.sh.j2
+    dest: /usr/local/bin/winvm
+    owner: root
+    group: root
+    mode: "0755"
+
+# --- Host -> VM port forwards ----------------------------------------------
+
+- name: Install the port-forward systemd units
+  ansible.builtin.template:
+    src: winvm-forward.service.j2
+    dest: "/etc/systemd/system/winvm-forward-{{ item.name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ winvm_forwarded_ports }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.port }})"
+  notify: Reload systemd
+
+- name: Flush handlers so systemd sees the new units
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable and start the port-forward units
+  ansible.builtin.systemd:
+    name: "winvm-forward-{{ item.name }}.service"
+    state: started
+    enabled: true
+  loop: "{{ winvm_forwarded_ports }}"
+  loop_control:
+    label: "{{ item.name }} ({{ item.port }})"

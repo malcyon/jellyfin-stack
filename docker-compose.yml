@@ -155,6 +155,7 @@ services:
     ports:
       - "80:80"
       - "81:81"
+      - "443:443"
     volumes:
       - ./nginx/data:/data
       - ./nginx/letsencrypt:/etc/letsencrypt

@@ -5,3 +5,17 @@ all:
         media-server:
           ansible_host: 192.168.1.182
           ansible_user: donald
+
+    workstations:
+      hosts:
+        home:
+          # This machine. The Windows test VM runs here, so the console is
+          # local and no port forwarding is needed to reach it.
+          ansible_connection: local
+          ansible_host: 127.0.0.1
+
+    # Hosts that roles/windows-vm targets. Kept as its own group so the media
+    # stack playbook and the VM playbook never accidentally act on each other.
+    winvm_hosts:
+      children:
+        workstations:

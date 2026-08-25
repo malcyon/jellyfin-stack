@@ -1,0 +1,111 @@
+---
+# --- Identity / sizing ------------------------------------------------------
+winvm_name: win11
+winvm_computer_name: WIN11-DEV
+winvm_user: donald          # host account added to the libvirt/kvm groups
+winvm_vcpus: 4
+winvm_memory_mb: 6144
+winvm_disk_gb: 64
+
+# --- Paths ------------------------------------------------------------------
+# Under /var/lib/libvirt on purpose. A per-user directory does not work: qemu
+# runs as libvirt-qemu, and a 0750 home directory blocks it from traversing to
+# the disk ("Cannot access storage file ... Permission denied"). Override this
+# on a host whose root filesystem is too small, but pick a path every user can
+# traverse.
+winvm_base_dir: /var/lib/libvirt/winvm
+winvm_iso_dir: "{{ winvm_base_dir }}/iso"
+winvm_state_dir: "{{ winvm_base_dir }}/state"
+winvm_disk_path: "{{ winvm_base_dir }}/{{ winvm_name }}.qcow2"
+
+# --- Windows install media --------------------------------------------------
+# The Evaluation Center gates the ISO behind a registration form, so there is
+# no stable URL to fetch. Download it once from
+#   https://www.microsoft.com/en-us/evalcenter/evaluate-windows-11-enterprise
+# then set winvm_iso_src to the local path, put it at winvm_iso_path yourself,
+# or set winvm_iso_url if you have a link the host can reach.
+winvm_iso_path: "{{ winvm_iso_dir }}/windows11-enterprise-eval.iso"
+winvm_iso_src: ""
+winvm_iso_url: ""
+winvm_image_index: 1        # Enterprise eval ISOs ship a single image
+
+# virtio-win. Not needed to boot (SATA + e1000e are both in-box in Windows),
+# but virtio-win-gt-x64.msi carries vioser.sys, without which the QEMU guest
+# agent has no channel to talk over.
+winvm_virtio_iso_path: "{{ winvm_iso_dir }}/virtio-win.iso"
+winvm_virtio_iso_url: https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
+
+# --- Networking -------------------------------------------------------------
+# A dedicated NAT network with neither DNS nor DHCP declared, so libvirt starts
+# no dnsmasq for it at all. That was forced by the media server (Pi-hole runs
+# with network_mode: host and owns 0.0.0.0:53 and 0.0.0.0:67, and a DHCP server
+# always binds the wildcard address), and it is kept here because it is one
+# code path with nothing to drift: the guest addresses itself from
+# autounattend.xml.
+winvm_network_name: winvm
+winvm_bridge: virbr-win
+winvm_net_gateway: 192.168.123.1
+winvm_net_netmask: 255.255.255.0
+winvm_net_prefix: 24
+winvm_ip: 192.168.123.50
+winvm_mac: "52:54:00:7b:11:50"
+winvm_dns_server: 192.168.1.182     # Pi-hole, so the guest resolves *.morton.lan
+winvm_disable_default_network: false
+
+# --- Ports ------------------------------------------------------------------
+# Opened inbound in the guest's firewall by autounattend.xml.
+winvm_guest_open_ports:
+  - name: rdp
+    port: 3389
+  - name: ssh
+    port: 22
+
+# Host -> guest forwards, one socat systemd unit each. Only needed when the VM
+# runs on a different machine than you sit at; leave empty for a local VM.
+winvm_forwarded_ports: []
+winvm_forward_listen_address: "0.0.0.0"
+
+# --- Console ----------------------------------------------------------------
+# spice: best local console, carries audio. vnc: bound to loopback, reach it
+# over an SSH tunnel — for a VM on a remote host.
+winvm_graphics: spice
+winvm_vnc_port: 5900
+winvm_install_desktop_tools: true    # virt-manager / virt-viewer on the host
+
+# --- Guest software ---------------------------------------------------------
+# WinUAE is embedded in the unattend ISO rather than downloaded by the guest,
+# so first logon needs no working internet.
+winvm_install_winuae: true
+winvm_winuae_url: https://download.abime.net/winuae/releases/InstallWinUAE6030_x64.msi
+winvm_winuae_msi: InstallWinUAE6030_x64.msi
+winvm_winuae_install_dir: 'C:\Program Files\WinUAE'
+
+# Amiga Kickstart ROMs staged into the unattend ISO and copied into the guest
+# at first logon. Set winvm_kickstart_src to "" to skip.
+# WinUAE identifies ROMs by CRC, so raw dumps are recognised on their own.
+# Cloanto/Amiga Forever ROMs are encrypted (they begin "AMIROMTYPE1") and need
+# rom.key alongside them — drop it in the same directory if yours are.
+winvm_kickstart_src: /home/donald/FS-UAE/Kickstarts
+winvm_kickstart_dest: 'C:\Amiga\Kickstarts'
+
+# Paths excluded from Microsoft Defender real-time scanning in the guest.
+# Add your ADF/ROM directories here — those are what real-time scanning
+# actually slows down.
+winvm_defender_exclusions:
+  - "{{ winvm_winuae_install_dir }}"
+  - "{{ winvm_kickstart_dest }}"
+
+# --- Guest account / locale -------------------------------------------------
+winvm_admin_user: donald
+
+# Public key injected into the guest's administrators_authorized_keys, so
+# Claude Code agents can drive the VM over ssh/scp.
+winvm_ssh_pubkey_path: ~/.ssh/id_ed25519.pub
+winvm_ssh_pubkey: "{{ lookup('file', winvm_ssh_pubkey_path) }}"
+winvm_timezone: Central Standard Time
+winvm_locale: en-US
+winvm_input_locale: "0409:00000409"
+
+# Off by default: starting an idle 6 GiB VM with the desktop is a poor trade.
+# Start it with `virsh start win11` or from virt-manager.
+winvm_autostart: false

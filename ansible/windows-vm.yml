@@ -1,0 +1,14 @@
+---
+# Windows 11 test VM on the media server (QEMU/KVM + libvirt).
+#
+# Deliberately a separate playbook from playbook.yml — the media stack should
+# never be reconfigured just to rebuild a throwaway test VM, and vice versa.
+#
+#   ansible-playbook -i ansible/inventory.yml ansible/windows-vm.yml
+#
+- name: Set up Windows 11 test VM
+  hosts: winvm_hosts
+  become: true
+  roles:
+    - role: windows-vm
+      tags: winvm

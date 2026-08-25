@@ -1,0 +1,24 @@
+---
+winvm_user: donald
+
+# i7-8700 (Coffee Lake) with 15 GiB RAM, and this is also the desktop being
+# used — 6 GiB leaves roughly 2 GiB headroom at typical load. qcow2 is sparse,
+# so 64 GB virtual occupies ~30 GB of the 92 GB free on the single NVMe.
+winvm_vcpus: 6
+winvm_memory_mb: 6144
+winvm_disk_gb: 64
+
+winvm_iso_src: /home/donald/Downloads/26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso
+
+# The VM is local, so nothing needs forwarding — connect to winvm_ip directly,
+# or just use the SPICE console in virt-manager.
+winvm_forwarded_ports: []
+
+# No Pi-hole here, so libvirt's `default` network is harmless; leave it alone.
+winvm_disable_default_network: false
+
+# SPICE rather than VNC: better local console, and it carries audio, which
+# matters for WinUAE.
+winvm_graphics: spice
+
+winvm_install_winuae: true

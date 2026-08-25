@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# Managed by Ansible — roles/windows-vm.
+# Control surface for the {{ winvm_name }} VM, intended for scripted/agent use.
+#
+#   winvm acquire <tag>   take a lease and start the VM if needed
+#   winvm release <tag>   drop a lease; shut down when the last one goes
+#   winvm up|down|save|status|shot [file]|ssh [cmd...]
+#   winvm promote         make the current disk the golden base
+#   winvm revert          discard all changes since the golden base
+set -euo pipefail
+
+VM={{ winvm_name }}
+BASE={{ winvm_base_dir }}
+DISK={{ winvm_disk_path }}
+GOLDEN="$BASE/{{ winvm_name }}-golden.qcow2"
+NVRAM=/var/lib/libvirt/qemu/nvram/{{ winvm_name }}_VARS.fd
+NVRAM_GOLDEN="$BASE/{{ winvm_name }}_VARS.golden.fd"
+IP={{ winvm_ip }}
+USER={{ winvm_admin_user }}
+LEASES="$BASE/leases"
+LOCK="$BASE/.winvm.lock"
+
+V() { virsh -c qemu:///system "$@"; }
+state() { V domstate "$VM" 2>/dev/null || echo "undefined"; }
+die() { echo "winvm: $*" >&2; exit 1; }
+
+# Every state-changing command runs under the same lock: agents are expected to
+# call this concurrently, and start/stop races corrupt disks.
+lock() { exec 9>"$LOCK"; flock 9; }
+
+wait_ssh() {
+  local n=${1:-120}
+  for _ in $(seq 1 "$n"); do
+    if ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no \
+           -o UserKnownHostsFile=/dev/null -o BatchMode=yes \
+           "$USER@$IP" 'exit' >/dev/null 2>&1; then return 0; fi
+    sleep 2
+  done
+  return 1
+}
+
+up() {
+  lock
+  case "$(state)" in
+    running) ;;
+    # managedsave restores in a couple of seconds; a cold boot is ~40.
+    *) V start "$VM" >/dev/null ;;
+  esac
+  wait_ssh || die "VM started but ssh never answered — check: winvm shot"
+  echo "up"
+}
+
+down() { lock; [ "$(state)" = "running" ] && V shutdown "$VM" >/dev/null || true
+         for _ in $(seq 1 60); do [ "$(state)" = "running" ] || break; sleep 2; done
+         [ "$(state)" = "running" ] && V destroy "$VM" >/dev/null || true; echo "down"; }
+
+save() { lock; [ "$(state)" = "running" ] && V managedsave "$VM" >/dev/null || true; echo "saved"; }
+
+acquire() {
+  local tag=${1:?usage: winvm acquire <tag>}
+  mkdir -p "$LEASES"; : > "$LEASES/$tag"
+  up
+}
+
+release() {
+  local tag=${1:?usage: winvm release <tag>}
+  rm -f "$LEASES/$tag"
+  shopt -s nullglob; local held=("$LEASES"/*)
+  # Length test done with -z on the joined array rather than the usual
+  # array-length form: this file is a Jinja template, and a dollar-brace-hash
+  # sequence opens a Jinja comment and breaks templating.
+  if [ -z "${held[*]:-}" ]; then down; else echo "still held by: ${held[*]##*/}"; fi
+}
+
+promote() {
+  [ "$(state)" = "running" ] && die "shut the VM down first (winvm down)"
+  lock
+  if [ -f "$GOLDEN" ]; then
+    # Re-promote. The disk is already a thin overlay on golden, so merge the
+    # diff down into the base -- work proportional to what changed, not to the
+    # 21 GB image. Rewriting the whole thing here once cost 12 minutes and
+    # compacted nothing.
+    backing=$(qemu-img info --output=json "$DISK" \
+              | tr ',' '\n' | sed -n 's/.*"backing-filename": *"\([^"]*\)".*/\1/p' | head -1)
+    [ "$backing" = "$GOLDEN" ] || die "$DISK is not an overlay on $GOLDEN (backing: ${backing:-none})"
+    echo "merging overlay into golden..."
+    qemu-img commit "$DISK"
+  else
+    # First promote. The disk is standalone, so a rename makes it the base.
+    # Instant: no bytes move.
+    mv "$DISK" "$GOLDEN"
+  fi
+  cp -a "$NVRAM" "$NVRAM_GOLDEN"
+  rm -f "$DISK"
+  qemu-img create -f qcow2 -F qcow2 -b "$GOLDEN" "$DISK" >/dev/null
+  chown root:kvm "$GOLDEN" "$DISK"; chmod 0644 "$GOLDEN" "$DISK"
+  echo "promoted: golden is now $(du -h "$GOLDEN" | cut -f1), overlay reset"
+}
+
+revert() {
+  [ -f "$GOLDEN" ] || die "no golden base yet — run: winvm promote"
+  lock
+  [ "$(state)" = "running" ] && V destroy "$VM" >/dev/null || true
+  V managedsave-remove "$VM" >/dev/null 2>&1 || true
+  rm -f "$DISK"
+  qemu-img create -f qcow2 -F qcow2 -b "$GOLDEN" "$DISK" >/dev/null
+  chown root:kvm "$DISK"; chmod 0644 "$DISK"
+  # NVRAM too: reverting the disk without the UEFI varstore can leave the boot
+  # entry pointing at an ESP that no longer matches.
+  cp -a "$NVRAM_GOLDEN" "$NVRAM"; chown libvirt-qemu:kvm "$NVRAM"
+  echo "reverted to golden"
+}
+
+case "${1:-status}" in
+  up) up ;;
+  down) down ;;
+  save) save ;;
+  acquire) shift; acquire "$@" ;;
+  release) shift; release "$@" ;;
+  promote) promote ;;
+  revert) revert ;;
+  shot) V screenshot "$VM" "${2:-/tmp/$VM.png}" ;;
+  ssh) shift; ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$USER@$IP" "$@" ;;
+  status)
+    printf 'state:   %s\n' "$(state)"
+    printf 'golden:  %s\n' "$([ -f "$GOLDEN" ] && du -h "$GOLDEN" | cut -f1 || echo 'none — run: winvm promote')"
+    printf 'overlay: %s\n' "$([ -f "$DISK" ] && du -h "$DISK" | cut -f1 || echo none)"
+    shopt -s nullglob; l=("$LEASES"/*); printf 'leases:  %s\n' "${l[*]##*/}"
+    ;;
+  *) die "unknown command: $1" ;;
+esac

@@ -1,0 +1,28 @@
+---
+# Ubuntu ships both the monolithic libvirtd and the modular virtnetworkd, but
+# only one is ever active. Restart whichever it is — starting the inactive one
+# would fight the other over the same sockets.
+- name: Restart libvirt network daemon
+  ansible.builtin.shell: |
+    set -e
+    for unit in virtnetworkd libvirtd; do
+      if systemctl is-active --quiet "$unit"; then
+        systemctl restart "$unit"
+      fi
+    done
+  changed_when: true
+
+- name: Restart winvm network
+  ansible.builtin.shell: |
+    virsh net-destroy {{ winvm_network_name }} 2>/dev/null || true
+    virsh net-start {{ winvm_network_name }}
+  changed_when: true
+
+- name: Reload AppArmor
+  ansible.builtin.service:
+    name: apparmor
+    state: reloaded
+
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true

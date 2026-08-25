@@ -315,3 +315,14 @@ The example file with placeholder values is at `vault.yml.example`.
 | `templates/sabnzbd.ini.j2` | Full SABnzbd config with newsgroup credentials |
 | `templates/qbittorrent.conf.j2` | qBittorrent config with WebUI password hash |
 
+
+---
+
+## Windows 11 test VM
+
+The Windows test VM lives in its own playbook and role — see
+[README-windows-vm.md](README-windows-vm.md).
+
+```bash
+ansible-playbook -i ansible/inventory.yml ansible/windows-vm.yml
+```

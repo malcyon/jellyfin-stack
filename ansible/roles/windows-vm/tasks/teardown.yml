@@ -1,0 +1,102 @@
+---
+# Removes the VM and everything the role created on this host.
+# Deliberately leaves the QEMU/libvirt packages installed — pulling ~99
+# packages off a running media server is a bigger blast radius than the ask,
+# and an idle libvirtd costs nothing. See README for the purge command.
+#
+#   ansible-playbook -i ansible/inventory.yml ansible/windows-vm-teardown.yml
+
+- name: List defined domains
+  ansible.builtin.command: virsh list --all --name
+  register: winvm_td_domains
+  changed_when: false
+  failed_when: false
+
+- name: List running domains
+  ansible.builtin.command: virsh list --name
+  register: winvm_td_running
+  changed_when: false
+  failed_when: false
+
+- name: Force off the {{ winvm_name }} domain
+  ansible.builtin.command: "virsh destroy {{ winvm_name }}"
+  when: winvm_name in (winvm_td_running.stdout_lines | default([]))
+  changed_when: true
+
+# --nvram matters: without it libvirt refuses to undefine a UEFI domain, and
+# the per-domain varstore is left orphaned in /var/lib/libvirt/qemu/nvram.
+- name: Undefine the {{ winvm_name }} domain and its NVRAM
+  ansible.builtin.command: "virsh undefine --nvram {{ winvm_name }}"
+  when: winvm_name in (winvm_td_domains.stdout_lines | default([]))
+  changed_when: true
+
+- name: Stop and disable the port-forward units
+  ansible.builtin.systemd:
+    name: "winvm-forward-{{ item.name }}.service"
+    state: stopped
+    enabled: false
+  loop: "{{ winvm_forwarded_ports }}"
+  loop_control:
+    label: "{{ item.name }}"
+  failed_when: false
+
+- name: Remove the port-forward unit files
+  ansible.builtin.file:
+    path: "/etc/systemd/system/winvm-forward-{{ item.name }}.service"
+    state: absent
+  loop: "{{ winvm_forwarded_ports }}"
+  loop_control:
+    label: "{{ item.name }}"
+  notify: Reload systemd
+
+- name: List running libvirt networks
+  ansible.builtin.command: virsh net-list --name
+  register: winvm_td_nets_running
+  changed_when: false
+  failed_when: false
+
+- name: List defined libvirt networks
+  ansible.builtin.command: virsh net-list --all --name
+  register: winvm_td_nets_all
+  changed_when: false
+  failed_when: false
+
+- name: Stop the {{ winvm_network_name }} network
+  ansible.builtin.command: "virsh net-destroy {{ winvm_network_name }}"
+  when: winvm_network_name in (winvm_td_nets_running.stdout_lines | default([]))
+  changed_when: true
+
+- name: Undefine the {{ winvm_network_name }} network
+  ansible.builtin.command: "virsh net-undefine {{ winvm_network_name }}"
+  when: winvm_network_name in (winvm_td_nets_all.stdout_lines | default([]))
+  changed_when: true
+
+- name: Remove the VM tree (disk, ISOs, generated XML, unattend)
+  ansible.builtin.file:
+    path: "{{ winvm_base_dir }}"
+    state: absent
+
+- name: Remove the AppArmor override
+  ansible.builtin.blockinfile:
+    path: /etc/apparmor.d/local/abstractions/libvirt-qemu
+    marker: "# {mark} ANSIBLE MANAGED BLOCK windows-vm"
+    state: absent
+  failed_when: false
+  notify: Reload AppArmor
+
+- name: Un-pin the libvirt firewall backend
+  ansible.builtin.lineinfile:
+    path: /etc/libvirt/network.conf
+    regexp: '^firewall_backend\s*='
+    state: absent
+  failed_when: false
+  notify: Restart libvirt network daemon
+
+# Left disabled on purpose. Re-enabling it here would put libvirt's dnsmasq
+# back in contention with Pi-hole for :53 and :67 on every boot — which is the
+# state this role found the host in and has no reason to restore.
+- name: Report that libvirt's default network is left disabled
+  ansible.builtin.debug:
+    msg: >-
+      libvirt's `default` network remains defined but not autostarting. That is
+      intentional — starting it would collide with Pi-hole on ports 53 and 67.
