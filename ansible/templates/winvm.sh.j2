@@ -21,6 +21,11 @@ LEASES="$BASE/leases"
 LOCK="$BASE/.winvm.lock"
 
 V() { virsh -c qemu:///system "$@"; }
+# Image files are root-owned and libvirt flips their ownership to libvirt-qemu
+# while the VM runs, so anything touching them needs root. ssh must NOT --
+# under sudo it runs as root, which has none of your keys. So elevate the
+# file operations only, and never the ssh ones.
+R() { sudo "$@"; }
 state() { V domstate "$VM" 2>/dev/null || echo "undefined"; }
 die() { echo "winvm: $*" >&2; exit 1; }
 
@@ -80,20 +85,20 @@ promote() {
     # diff down into the base -- work proportional to what changed, not to the
     # 21 GB image. Rewriting the whole thing here once cost 12 minutes and
     # compacted nothing.
-    backing=$(qemu-img info --output=json "$DISK" \
+    backing=$(R qemu-img info --output=json "$DISK" \
               | tr ',' '\n' | sed -n 's/.*"backing-filename": *"\([^"]*\)".*/\1/p' | head -1)
     [ "$backing" = "$GOLDEN" ] || die "$DISK is not an overlay on $GOLDEN (backing: ${backing:-none})"
     echo "merging overlay into golden..."
-    qemu-img commit "$DISK"
+    R qemu-img commit "$DISK"
   else
     # First promote. The disk is standalone, so a rename makes it the base.
     # Instant: no bytes move.
-    mv "$DISK" "$GOLDEN"
+    R mv "$DISK" "$GOLDEN"
   fi
-  cp -a "$NVRAM" "$NVRAM_GOLDEN"
-  rm -f "$DISK"
-  qemu-img create -f qcow2 -F qcow2 -b "$GOLDEN" "$DISK" >/dev/null
-  chown root:kvm "$GOLDEN" "$DISK"; chmod 0644 "$GOLDEN" "$DISK"
+  R cp -a "$NVRAM" "$NVRAM_GOLDEN"
+  R rm -f "$DISK"
+  R qemu-img create -f qcow2 -F qcow2 -b "$GOLDEN" "$DISK" >/dev/null
+  R chown root:kvm "$GOLDEN" "$DISK"; R chmod 0644 "$GOLDEN" "$DISK"
   echo "promoted: golden is now $(du -h "$GOLDEN" | cut -f1), overlay reset"
 }
 
@@ -102,12 +107,12 @@ revert() {
   lock
   [ "$(state)" = "running" ] && V destroy "$VM" >/dev/null || true
   V managedsave-remove "$VM" >/dev/null 2>&1 || true
-  rm -f "$DISK"
-  qemu-img create -f qcow2 -F qcow2 -b "$GOLDEN" "$DISK" >/dev/null
-  chown root:kvm "$DISK"; chmod 0644 "$DISK"
+  R rm -f "$DISK"
+  R qemu-img create -f qcow2 -F qcow2 -b "$GOLDEN" "$DISK" >/dev/null
+  R chown root:kvm "$DISK"; R chmod 0644 "$DISK"
   # NVRAM too: reverting the disk without the UEFI varstore can leave the boot
   # entry pointing at an ESP that no longer matches.
-  cp -a "$NVRAM_GOLDEN" "$NVRAM"; chown libvirt-qemu:kvm "$NVRAM"
+  R cp -a "$NVRAM_GOLDEN" "$NVRAM"; R chown libvirt-qemu:kvm "$NVRAM"
   echo "reverted to golden"
 }
 

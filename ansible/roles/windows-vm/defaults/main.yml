@@ -91,9 +91,12 @@ winvm_kickstart_dest: 'C:\Amiga\Kickstarts'
 # Paths excluded from Microsoft Defender real-time scanning in the guest.
 # Add your ADF/ROM directories here — those are what real-time scanning
 # actually slows down.
+# C:\Amiga wholesale rather than per-subdirectory: Kickstarts, disk images and
+# memory dumps all live under it, and real-time scanning of ADF/HDF images is
+# what actually costs performance.
 winvm_defender_exclusions:
   - "{{ winvm_winuae_install_dir }}"
-  - "{{ winvm_kickstart_dest }}"
+  - 'C:\Amiga'
 
 # --- Guest account / locale -------------------------------------------------
 winvm_admin_user: donald

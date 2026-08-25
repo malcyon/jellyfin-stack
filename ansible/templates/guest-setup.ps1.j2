@@ -49,6 +49,37 @@ Step 'disable lock screen' {
     powercfg /setactive SCHEME_CURRENT
 }
 
+# --- Windows Update off -----------------------------------------------------
+# This VM exists to run 1992 Amiga software offline; it is never going to be
+# patched, and Windows Update is pure cost here. Left on, ~25 minutes of uptime
+# wrote a 16 GB overlay -- update payloads plus a 6 GB pagefile -- all of which
+# then has to be merged into the golden image on `winvm promote`, turning a
+# seconds-long operation into a multi-minute one. It also competes with the
+# emulator for CPU.
+#
+# Enterprise honours the Group Policy keys properly, which Home does not.
+Step 'disable Windows Update' {
+    $wu = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    New-Item -Path "$wu\AU" -Force | Out-Null
+    Set-ItemProperty "$wu\AU" NoAutoUpdate 1 -Type DWord
+    Set-ItemProperty "$wu\AU" AUOptions   1 -Type DWord   # never check
+    Set-ItemProperty $wu DoNotConnectToWindowsUpdateInternetLocations 1 -Type DWord
+    # Store auto-updates are a second source of the same traffic.
+    New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' -Force | Out-Null
+    Set-ItemProperty 'HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore' AutoDownload 2 -Type DWord
+}
+# The services are disabled through the registry rather than Set-Service:
+# WaaSMedicSvc refuses Set-Service with access denied even elevated, and its
+# entire job is turning the others back on.
+Step 'disable Windows Update services' {
+    foreach ($svc in 'wuauserv', 'UsoSvc', 'DoSvc', 'WaaSMedicSvc') {
+        Stop-Service $svc -Force -ErrorAction SilentlyContinue
+        $key = "HKLM:\SYSTEM\CurrentControlSet\Services\$svc"
+        if (Test-Path $key) { Set-ItemProperty $key Start 4 -Type DWord }
+    }
+    Log "  services set to disabled: wuauserv UsoSvc DoSvc WaaSMedicSvc"
+}
+
 # --- Wait for outbound networking ------------------------------------------
 # Add-WindowsCapability pulls OpenSSH from Windows Update, so it needs the NAT
 # route to be up. The static IP is configured by an earlier first-logon

@@ -116,7 +116,20 @@
 
 # --- Storage layout ---------------------------------------------------------
 
-- name: Create VM directories
+# The base directory is group-writable by `libvirt` because `winvm` keeps its
+# flock and its lease files here, and it is meant to run as you rather than
+# under sudo -- under sudo it shells out to ssh as root, which has none of your
+# keys. Anyone in the libvirt group can already start and stop VMs, so this
+# grants nothing new. The image and ISO directories stay root-owned.
+- name: Create the VM base directory (group-writable for winvm's lock/leases)
+  ansible.builtin.file:
+    path: "{{ winvm_base_dir }}"
+    state: directory
+    owner: root
+    group: libvirt
+    mode: "0775"
+
+- name: Create VM subdirectories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
@@ -124,9 +137,29 @@
     group: kvm
     mode: "0755"
   loop:
-    - "{{ winvm_base_dir }}"
     - "{{ winvm_iso_dir }}"
     - "{{ winvm_state_dir }}"
+
+# Created here rather than left to the first `winvm` run: whoever runs it first
+# owns it, and if that is root under sudo, every later unprivileged run fails
+# with "Permission denied" on the lock.
+- name: Create the winvm lock file
+  ansible.builtin.file:
+    path: "{{ winvm_base_dir }}/.winvm.lock"
+    state: touch
+    owner: root
+    group: libvirt
+    mode: "0664"
+    modification_time: preserve
+    access_time: preserve
+
+- name: Create the leases directory
+  ansible.builtin.file:
+    path: "{{ winvm_base_dir }}/leases"
+    state: directory
+    owner: root
+    group: libvirt
+    mode: "0775"
 
 # virt-aa-helper builds a per-domain AppArmor profile from the domain XML, but
 # it is conservative about paths outside /var/lib/libvirt. Grant the VM tree
