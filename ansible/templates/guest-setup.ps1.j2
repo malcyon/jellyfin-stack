@@ -159,6 +159,43 @@ Step 'virtio drivers + guest agent' {
     Log "guest agent service: $(if ($svc) { "$($svc.Name)=$($svc.Status)" } else { 'ABSENT' })"
 }
 
+{% if winvm_install_qxl %}
+# --- QXL display driver -----------------------------------------------------
+# virtio-win-gt-x64.msi installs the network, storage and balloon drivers but
+# NOT the display one, so without this the guest runs on "Microsoft Basic
+# Display Adapter": a single fixed mode, no SPICE auto-resize when the viewer
+# window changes, and no way to make the screen taller. A dialog taller than
+# the screen then has its buttons off the bottom with nothing to drag them
+# back with -- which is how this was found, in 2026-08, with VICE's disk
+# attach dialog in 1280x800.
+#
+# **This step must stay after the virtio one.** That MSI puts Red Hat's
+# certificate into the TrustedPublisher store, and pnputil cannot install a
+# driver unattended until it is there -- it would sit waiting for a human to
+# confirm the publisher, on a machine with nobody at it.
+#
+# The ISO carries no w11 package for qxldod; w10\amd64 is the Windows 11 one.
+Step 'QXL display driver' {
+    $v = Get-Volume | Where-Object { $_.FileSystemLabel -like 'virtio-win*' } | Select-Object -First 1
+    if (-not $v) { throw 'virtio-win volume not found' }
+    $inf = '{0}:\{{ winvm_qxl_inf }}' -f $v.DriveLetter
+    if (-not (Test-Path $inf)) { throw "not found: $inf" }
+
+    $p = Start-Process pnputil.exe -ArgumentList '/add-driver', $inf, '/install' -Wait -PassThru -NoNewWindow
+    Log "pnputil exit code: $($p.ExitCode)"
+
+    # 259 is ERROR_NO_MORE_ITEMS -- pnputil's "nothing to do", which is a
+    # success here. Anything else that is not 0 is worth reading in the log.
+    if ($p.ExitCode -notin 0, 259) { throw "pnputil failed with $($p.ExitCode)" }
+
+    # The adapter name only changes once Windows has swapped the driver in,
+    # which can wait for the reboot after first logon. Log whichever it is
+    # rather than failing: the driver being staged is what this step controls.
+    $gpu = (Get-CimInstance Win32_VideoController | Select-Object -First 1).Name
+    Log "display adapter now: $gpu"
+}
+{% endif %}
+
 {% if winvm_install_vice %}
 # --- VICE -------------------------------------------------------------------
 # VICE ships as a zip, not an installer, so there is nothing for msiexec to do

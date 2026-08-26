@@ -91,6 +91,15 @@ winvm_vice_url: https://downloads.sourceforge.net/project/vice-emu/releases/bina
 winvm_vice_zip: GTK3VICE-3.10-win64.zip
 winvm_vice_install_dir: 'C:\VICE'
 
+# The QXL display driver. virtio-win-gt-x64.msi does NOT install it, so without
+# this the guest comes up on "Microsoft Basic Display Adapter": one fixed mode,
+# no SPICE auto-resize, and dialogs taller than the screen with no way to reach
+# their buttons. Found on 2026-08-26, after VICE's disk dialog would not fit in
+# 1280x800.
+# There is no w11 package on the virtio ISO; w10\amd64 is the Windows 11 one.
+winvm_install_qxl: true
+winvm_qxl_inf: 'qxldod\w10\amd64\qxldod.inf'
+
 # Amiga Kickstart ROMs staged into the unattend ISO and copied into the guest
 # at first logon. Set winvm_kickstart_src to "" to skip.
 # WinUAE identifies ROMs by CRC, so raw dumps are recognised on their own.

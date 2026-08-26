@@ -185,6 +185,41 @@ one to a running VM, in an elevated PowerShell inside the guest:
 Add-MpPreference -ExclusionPath 'C:\Amiga'
 ```
 
+## Display — the QXL driver
+
+`virtio-win-gt-x64.msi` installs the network, storage and balloon drivers but
+**not** the display one. Without the QXL driver the guest runs on *Microsoft
+Basic Display Adapter*: one fixed mode, no taller resolutions offered, and no
+SPICE auto-resize when you resize the viewer window.
+
+That is worse than cosmetic. A dialog taller than the screen has its buttons
+off the bottom edge with nothing to drag them back with — which is how this was
+found, in 2026-08, with VICE's disk-attach dialog in 1280x800.
+
+`guest-setup.ps1` now installs it with `pnputil` from the virtio ISO. Two things
+about that step are deliberate:
+
+* **It runs after the virtio MSI**, which puts Red Hat's certificate in the
+  TrustedPublisher store. Without that certificate `pnputil` waits for a human
+  to confirm the publisher, on a machine with nobody at it.
+* **The path is the `w10` package.** The ISO carries no `w11` build of
+  `qxldod`; `w10\amd64` is the Windows 11 one.
+
+```yaml
+winvm_install_qxl: true
+winvm_qxl_inf: 'qxldod\w10\amd64\qxldod.inf'
+```
+
+On a VM built before this existed, install it by hand from the attached virtio
+volume and reboot:
+
+```powershell
+pnputil /add-driver E:\qxldod\w10\amd64\qxldod.inf /install
+```
+
+Check with `(Get-CimInstance Win32_VideoController).Name` — *Red Hat QXL
+controller* rather than *Microsoft Basic Display Adapter*.
+
 ## VICE
 
 Installed automatically at first logon from the unattend ISO, the same as
