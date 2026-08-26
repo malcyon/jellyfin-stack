@@ -80,6 +80,17 @@ winvm_winuae_url: https://download.abime.net/winuae/releases/InstallWinUAE6030_x
 winvm_winuae_msi: InstallWinUAE6030_x64.msi
 winvm_winuae_install_dir: 'C:\Program Files\WinUAE'
 
+# VICE ships as a zip rather than an installer, so it is unpacked by
+# guest-setup.ps1 instead of handed to msiexec. Staged into the unattend ISO
+# for the same reason as WinUAE: first logon needs no working internet.
+# The zip holds a single versioned top-level directory; the unpack step
+# flattens it, so the path below stays the same across VICE releases and
+# nothing downstream has to be edited when 3.10 becomes 3.11.
+winvm_install_vice: true
+winvm_vice_url: https://downloads.sourceforge.net/project/vice-emu/releases/binaries/windows/GTK3VICE-3.10-win64.zip
+winvm_vice_zip: GTK3VICE-3.10-win64.zip
+winvm_vice_install_dir: 'C:\VICE'
+
 # Amiga Kickstart ROMs staged into the unattend ISO and copied into the guest
 # at first logon. Set winvm_kickstart_src to "" to skip.
 # WinUAE identifies ROMs by CRC, so raw dumps are recognised on their own.
@@ -96,6 +107,7 @@ winvm_kickstart_dest: 'C:\Amiga\Kickstarts'
 # what actually costs performance.
 winvm_defender_exclusions:
   - "{{ winvm_winuae_install_dir }}"
+  - "{{ winvm_vice_install_dir }}"
   - 'C:\Amiga'
 
 # --- Guest account / locale -------------------------------------------------

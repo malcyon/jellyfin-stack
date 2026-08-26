@@ -1,6 +1,6 @@
 # Windows 11 test VM
 
-A throwaway Windows 11 Enterprise (evaluation) VM with WinUAE, running under
+A throwaway Windows 11 Enterprise (evaluation) VM with WinUAE and VICE, running under
 QEMU/KVM + libvirt on **this workstation** (`home`), driven from Ansible.
 
 It is a **separate playbook** from `playbook.yml` on purpose — rebuilding the
@@ -184,6 +184,44 @@ one to a running VM, in an elevated PowerShell inside the guest:
 ```powershell
 Add-MpPreference -ExclusionPath 'C:\Amiga'
 ```
+
+## VICE
+
+Installed automatically at first logon from the unattend ISO, the same as
+WinUAE and for the same reason — first logon needs no working internet. It
+lands in `C:\VICE`, and that directory is excluded from Defender real-time
+scanning.
+
+**It is unpacked rather than installed.** VICE ships a zip and no installer, so
+there is nothing for `msiexec` to do; `guest-setup.ps1` expands it instead, and
+the log at `C:\Windows\Temp\guest-setup.log` carries the result under
+`install VICE`.
+
+**The version is flattened out of the path.** The archive holds a single
+top-level directory named for the release — `GTK3VICE-3.10-win64` — so
+unpacking it as-is would put the emulator at a path that moves with every VICE
+release. The unpack step lifts that directory's contents up one level, so the
+binary is at a stable path:
+
+```
+C:\VICE\bin\x64sc.exe
+```
+
+Upgrading is therefore two lines in `roles/windows-vm/defaults/main.yml` and a
+rebuild — nothing that names the path has to change:
+
+```yaml
+winvm_vice_url: https://downloads.sourceforge.net/project/vice-emu/releases/binaries/windows/GTK3VICE-3.10-win64.zip
+winvm_vice_zip: GTK3VICE-3.10-win64.zip
+```
+
+Set `winvm_install_vice: false` to skip it.
+
+**The binary monitor is not enabled for you.** VICE's remote monitor is what
+`wish`'s automapper attaches to, and it is off by default. Turn it on inside the
+guest — Settings → Machine → Monitor, or `-binarymonitor` on the command line.
+Automating it would mean writing the guest's `vice.ini` from here, which nothing
+has needed yet.
 
 ## Day-to-day — the `winvm` command
 

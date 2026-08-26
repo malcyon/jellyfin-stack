@@ -159,4 +159,40 @@ Step 'virtio drivers + guest agent' {
     Log "guest agent service: $(if ($svc) { "$($svc.Name)=$($svc.Status)" } else { 'ABSENT' })"
 }
 
+{% if winvm_install_vice %}
+# --- VICE -------------------------------------------------------------------
+# VICE ships as a zip, not an installer, so there is nothing for msiexec to do
+# and this cannot ride the WinUAE path in autounattend.xml.
+#
+# The archive holds one versioned top-level directory -- GTK3VICE-3.10-win64 --
+# and unpacking it as-is would put x64sc.exe at a path carrying the version, so
+# every VICE release would move it and everything naming that path would have to
+# be edited. The inner directory is flattened instead: x64sc.exe lands at
+# {{ winvm_vice_install_dir }}\bin\x64sc.exe and stays there.
+#
+# The UNATTEND volume is found by label, not by drive letter: the letter shifts
+# as disks come and go. Same reason as the WinUAE and Kickstart steps.
+Step 'install VICE' {
+    $u = Get-Volume | Where-Object { $_.FileSystemLabel -eq 'UNATTEND' } | Select-Object -First 1
+    if (-not $u) { throw 'UNATTEND volume not found' }
+    $zip = '{0}:\{{ winvm_vice_zip }}' -f $u.DriveLetter
+    if (-not (Test-Path $zip)) { throw "not found: $zip" }
+
+    $tmp = Join-Path $env:TEMP 'vice-unpack'
+    Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+    Expand-Archive -Path $zip -DestinationPath $tmp -Force
+
+    $inner = @(Get-ChildItem -Path $tmp -Directory)
+    if ($inner.Count -ne 1) { throw "expected one top-level directory in the zip, found $($inner.Count)" }
+
+    New-Item -ItemType Directory -Force -Path '{{ winvm_vice_install_dir }}' | Out-Null
+    Copy-Item -Path (Join-Path $inner[0].FullName '*') -Destination '{{ winvm_vice_install_dir }}' -Recurse -Force
+    Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+
+    $exe = Join-Path '{{ winvm_vice_install_dir }}' 'bin\x64sc.exe'
+    if (-not (Test-Path $exe)) { throw "unpacked, but $exe is missing" }
+    Log "VICE at $exe ($($inner[0].Name))"
+}
+{% endif %}
+
 Log "=== guest-setup done ==="

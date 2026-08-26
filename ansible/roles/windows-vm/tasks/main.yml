@@ -272,6 +272,18 @@
   when: winvm_install_winuae | bool
   register: winvm_winuae_dl
 
+# Same staging as WinUAE, but a zip: VICE has no installer, so guest-setup.ps1
+# unpacks it rather than msiexec installing it.
+- name: Download the VICE archive into the unattend staging directory
+  ansible.builtin.get_url:
+    url: "{{ winvm_vice_url }}"
+    dest: "{{ winvm_state_dir }}/unattend/{{ winvm_vice_zip }}"
+    owner: root
+    group: root
+    mode: "0644"
+  when: winvm_install_vice | bool
+  register: winvm_vice_dl
+
 - name: Stage the Kickstart ROMs into the unattend ISO
   ansible.builtin.copy:
     src: "{{ winvm_kickstart_src }}/"
@@ -322,7 +334,7 @@
       - -o
       - "{{ winvm_state_dir }}/unattend.iso"
       - "{{ winvm_state_dir }}/unattend"
-  when: winvm_unattend.changed or (winvm_winuae_dl.changed | default(false)) or (winvm_kickstarts.changed | default(false)) or winvm_guest_setup.changed or not winvm_unattend_iso.stat.exists
+  when: winvm_unattend.changed or (winvm_winuae_dl.changed | default(false)) or (winvm_vice_dl.changed | default(false)) or (winvm_kickstarts.changed | default(false)) or winvm_guest_setup.changed or not winvm_unattend_iso.stat.exists
   changed_when: true
 
 # Contains the admin password in plaintext, so keep it off the world-readable
