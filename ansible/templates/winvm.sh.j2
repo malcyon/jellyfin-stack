@@ -5,8 +5,14 @@
 #   winvm acquire <tag>   take a lease and start the VM if needed
 #   winvm release <tag>   drop a lease; shut down when the last one goes
 #   winvm up|down|save|status|shot [file]|ssh [cmd...]
+#   winvm scp <src> <dst> copy, with the same non-interactive options as ssh
 #   winvm promote         make the current disk the golden base
 #   winvm revert          discard all changes since the golden base
+#
+# Every path here is non-interactive on purpose: BatchMode and
+# SSH_ASKPASS_REQUIRE mean a failure is an error on stderr, never a password
+# dialog on somebody's screen.  `promote` refuses unless the domain is shut
+# off, because a paused domain is a live qemu holding the very file it merges.
 set -euo pipefail
 
 VM={{ winvm_name }}
@@ -20,6 +26,18 @@ USER={{ winvm_admin_user }}
 LEASES="$BASE/leases"
 LOCK="$BASE/.winvm.lock"
 
+# Nothing here may stop and ask a person. With no tty and DISPLAY set, OpenSSH
+# does not fail when authentication falls through -- it runs SSH_ASKPASS, and
+# on a KDE desktop that draws a credential dialog in front of whoever happens
+# to be sitting there. Three appeared that way during one unattended run.
+export SSH_ASKPASS_REQUIRE=never
+
+# Every ssh in this file goes through here, so the options cannot drift apart
+# again: `wait_ssh` had BatchMode and the `ssh` subcommand did not, which is
+# what let the dialogs through.
+SSH_OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+          -o BatchMode=yes)
+
 V() { virsh -c qemu:///system "$@"; }
 # Image files are root-owned and libvirt flips their ownership to libvirt-qemu
 # while the VM runs, so anything touching them needs root. ssh must NOT --
@@ -29,6 +47,17 @@ R() { sudo "$@"; }
 state() { V domstate "$VM" 2>/dev/null || echo "undefined"; }
 die() { echo "winvm: $*" >&2; exit 1; }
 
+# `virsh domstate` answers seven different things, and this script used to test
+# for `running` and treat everything else as "not running". That is wrong in
+# both directions: a *paused* domain is a live qemu with the overlay open, so
+# `promote` would have committed underneath it; and `down` would report success
+# having done nothing, which is how a session ended leaving the VM up.
+#
+# `live` is "a qemu process exists and holds the disk". `off` is the only state
+# it is safe to touch the image files in.
+live()  { case "$(state)" in running|paused|pmsuspended|"in shutdown"|blocked|idle) return 0 ;; *) return 1 ;; esac; }
+off()   { [ "$(state)" = "shut off" ]; }
+
 # Every state-changing command runs under the same lock: agents are expected to
 # call this concurrently, and start/stop races corrupt disks.
 lock() { exec 9>"$LOCK"; flock 9; }
@@ -36,8 +65,7 @@ lock() { exec 9>"$LOCK"; flock 9; }
 wait_ssh() {
   local n=${1:-120}
   for _ in $(seq 1 "$n"); do
-    if ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no \
-           -o UserKnownHostsFile=/dev/null -o BatchMode=yes \
+    if ssh -o ConnectTimeout=2 "${SSH_OPTS[@]}" \
            "$USER@$IP" 'exit' >/dev/null 2>&1; then return 0; fi
     sleep 2
   done
@@ -48,6 +76,10 @@ up() {
   lock
   case "$(state)" in
     running) ;;
+    # A human who closes a viewer window leaves the domain paused, and `virsh
+    # start` refuses an already-active domain -- so this was the one state that
+    # broke every command in the file.
+    paused|pmsuspended) V resume "$VM" >/dev/null ;;
     # managedsave restores in a couple of seconds; a cold boot is ~40.
     *) V start "$VM" >/dev/null ;;
   esac
@@ -55,16 +87,35 @@ up() {
   echo "up"
 }
 
-down() { lock; [ "$(state)" = "running" ] && V shutdown "$VM" >/dev/null || true
-         for _ in $(seq 1 60); do [ "$(state)" = "running" ] || break; sleep 2; done
-         [ "$(state)" = "running" ] && V destroy "$VM" >/dev/null || true; echo "down"; }
+down() {
+  lock
+  # A paused domain cannot be shut down gracefully, so resume it first and let
+  # Windows do it properly; `destroy` below is the fallback either way. The
+  # wait is for `shut off` rather than for "not running", because "not running"
+  # is true of `paused` and that is what used to end the wait immediately.
+  case "$(state)" in paused|pmsuspended) V resume "$VM" >/dev/null || true ;; esac
+  live && V shutdown "$VM" >/dev/null || true
+  for _ in $(seq 1 60); do off && break; sleep 2; done
+  off || V destroy "$VM" >/dev/null || true
+  off || die "VM is $(state) and would not shut down"
+  echo "down"
+}
 
-save() { lock; [ "$(state)" = "running" ] && V managedsave "$VM" >/dev/null || true; echo "saved"; }
+save() {
+  lock
+  case "$(state)" in paused|pmsuspended) V resume "$VM" >/dev/null || true ;; esac
+  if live; then V managedsave "$VM" >/dev/null; else echo "winvm: nothing to save ($(state))" >&2; fi
+  echo "saved"
+}
 
 acquire() {
   local tag=${1:?usage: winvm acquire <tag>}
-  mkdir -p "$LEASES"; : > "$LEASES/$tag"
-  up
+  # The lease used to be written first, so a failed `up` left one nobody held
+  # and nothing would ever remove -- and since `release` only shuts the VM down
+  # when the last lease goes, one stranded lease meant it never shut down again.
+  mkdir -p "$LEASES"
+  up || { rm -f "$LEASES/$tag"; return 1; }
+  : > "$LEASES/$tag"
 }
 
 release() {
@@ -78,7 +129,10 @@ release() {
 }
 
 promote() {
-  [ "$(state)" = "running" ] && die "shut the VM down first (winvm down)"
+  # `qemu-img commit` merges the overlay into the base, so the domain must not
+  # merely be "not running" -- it must be OFF. A paused domain is a live qemu
+  # with this exact file open, and it walked straight past the old guard.
+  off || die "the VM is $(state) -- it must be shut off before promoting (winvm down)"
   lock
   if [ -f "$GOLDEN" ]; then
     # Re-promote. The disk is already a thin overlay on golden, so merge the
@@ -125,7 +179,10 @@ case "${1:-status}" in
   promote) promote ;;
   revert) revert ;;
   shot) V screenshot "$VM" "${2:-/tmp/$VM.png}" ;;
-  ssh) shift; ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$USER@$IP" "$@" ;;
+  # Options before "$@" so a caller can still add their own; BatchMode means a
+  # failure is an error, not a prompt on somebody's desktop.
+  ssh) shift; ssh "${SSH_OPTS[@]}" "$USER@$IP" "$@" ;;
+  scp) shift; scp "${SSH_OPTS[@]}" "$@" ;;
   status)
     printf 'state:   %s\n' "$(state)"
     printf 'golden:  %s\n' "$([ -f "$GOLDEN" ] && du -h "$GOLDEN" | cut -f1 || echo 'none — run: winvm promote')"
