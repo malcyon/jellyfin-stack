@@ -61,6 +61,11 @@
   register: winvm_fw_backend
   changed_when: false
   failed_when: false
+  # Reads nothing and changes nothing, so it is safe under --check -- and it has
+  # to run there, or the task below sees no `rc`, believes its guard passed, and
+  # fails on a host where /etc/libvirt/network.conf does not exist at all. That
+  # made `--check` unusable on this role.
+  check_mode: false
 
 - name: Pin libvirt's firewall backend to iptables (coexist with Docker)
   ansible.builtin.lineinfile:
@@ -281,8 +286,15 @@
     owner: root
     group: root
     mode: "0644"
+    # 47 MB through SourceForge's redirect to whichever mirror it picks, which
+    # get_url's 10-second default does not survive -- it fails in about five,
+    # on "failed to create temporary content file".
+    timeout: 120
   when: winvm_install_vice | bool
   register: winvm_vice_dl
+  retries: 3
+  delay: 5
+  until: winvm_vice_dl is succeeded
 
 # Copyrighted, and kept out of git by work/ being ignored -- staged onto the
 # unattend ISO so the guest needs no share and no network to reach them.
