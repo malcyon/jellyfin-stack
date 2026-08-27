@@ -100,6 +100,29 @@ winvm_vice_install_dir: 'C:\VICE'
 winvm_install_qxl: true
 winvm_qxl_inf: 'qxldod\w10\amd64\qxldod.inf'
 
+# JiffyDOS ROMs for VICE. Copyrighted, so they live under work/ in this
+# repository, which is gitignored -- the same reasoning as the Kickstart ROMs
+# below, which stay outside the repository entirely. Set winvm_jiffydos_src to
+# "" to skip them; VICE then falls back to the stock kernal, which works and
+# simply has no fastloader.
+winvm_jiffydos_src: "{{ playbook_dir }}/../work/jiffydos"
+winvm_jiffydos_dest: 'C:\C64\JiffyDOS'
+winvm_jiffydos_kernal: JiffyDOS_C64_6.01.bin
+winvm_jiffydos_1541: JiffyDOS_1541-II_6.00.bin
+
+# VICE settings seeded into the guest at first logon, from templates/vice.ini.j2
+# to %APPDATA%\vice\vice.ini. Values mirror the workstation's own vicerc so a
+# measurement taken in the VM is comparable with one taken here.
+winvm_vice_config_version: '3.10'
+winvm_vice_video_standard: 2
+winvm_vice_power_frequency: 60
+# The binary monitor is what wish's automapper attaches to, and a stock VICE has
+# it off. The resource names are BinaryMonitorServer and
+# BinaryMonitorServerAddress -- `BinaryMonitor` is not a VICE resource.
+winvm_vice_binary_monitor: true
+winvm_vice_binary_monitor_port: 6502
+winvm_vice_text_monitor_port: 6510
+
 # Amiga Kickstart ROMs staged into the unattend ISO and copied into the guest
 # at first logon. Set winvm_kickstart_src to "" to skip.
 # WinUAE identifies ROMs by CRC, so raw dumps are recognised on their own.
@@ -118,6 +141,7 @@ winvm_defender_exclusions:
   - "{{ winvm_winuae_install_dir }}"
   - "{{ winvm_vice_install_dir }}"
   - 'C:\Amiga'
+  - "{{ winvm_jiffydos_dest }}"
 
 # --- Guest account / locale -------------------------------------------------
 winvm_admin_user: donald

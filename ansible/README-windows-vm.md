@@ -258,6 +258,42 @@ guest — Settings → Machine → Monitor, or `-binarymonitor` on the command l
 Automating it would mean writing the guest's `vice.ini` from here, which nothing
 has needed yet.
 
+## VICE settings and the JiffyDOS ROMs
+
+`templates/vice.ini.j2` is rendered on the host and copied into
+`C:\Users\<user>\AppData\Roaming\vice\vice.ini` at first logon. It mirrors
+the workstation's own `~/.var/app/net.sf.VICE/config/vice/vicerc`, minus the
+host paths, so a measurement taken in the VM is comparable with one taken here.
+
+**It is written only if absent.** VICE keeps `SaveResourcesOnExit=1`, so once
+somebody has opened the settings dialog the file on disk is theirs; overwriting
+it on a later run would discard their work.
+
+Two settings in it are the point of seeding it at all:
+
+* `VICIIFilter=0` — no rendering filter, which is what turns CRT emulation and
+  its scan lines off.
+* `BinaryMonitorServer=1` on `127.0.0.1:6502` — the socket `wish`'s automapper
+  attaches to, off in a stock VICE. **The resources are `BinaryMonitorServer`
+  and `BinaryMonitorServerAddress`.** There is no `BinaryMonitor` resource;
+  setting that name does nothing at all, silently.
+
+**The JiffyDOS ROMs are copyrighted**, so they live in `work/jiffydos/` here,
+which `.gitignore` excludes, and ride the unattend ISO into
+`C:\C64\JiffyDOS` — the same reasoning as the Kickstart ROMs, which stay
+outside the repository altogether. That directory is excluded from Defender too.
+
+Set `winvm_jiffydos_src: ""` to skip them. VICE then uses the stock kernal,
+which works — it just has no fastloader, and Pool of Radiance asks to disable
+its own on boot.
+
+```yaml
+winvm_jiffydos_src: "{{ playbook_dir }}/../work/jiffydos"
+winvm_jiffydos_dest: 'C:\C64\JiffyDOS'
+winvm_vice_binary_monitor: true
+winvm_vice_binary_monitor_port: 6502
+```
+
 ## Day-to-day — the `winvm` command
 
 `/usr/local/bin/winvm` is installed by the playbook and is the intended way to

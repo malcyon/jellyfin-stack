@@ -37,3 +37,8 @@ kiwix/**
 
 # Jellyfin runtime config is managed by Jellyfin itself — not tracked in git
 !jellyfin/
+
+# Copyrighted ROMs and any other binary the playbooks stage into a guest. They
+# are not ours to publish -- the same rule the Kickstart ROMs already follow by
+# living outside the repo entirely. Keep them here, never commit them.
+work/

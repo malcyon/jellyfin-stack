@@ -232,4 +232,43 @@ Step 'install VICE' {
 }
 {% endif %}
 
+{% if winvm_jiffydos_src | length > 0 %}
+# --- JiffyDOS ROMs ----------------------------------------------------------
+# Copyrighted, so they ride the unattend ISO from work/ on the host rather than
+# being downloaded. Without them VICE uses the stock kernal, which works -- it
+# just means no fastloader, and Pool of Radiance then asks to disable its own.
+Step 'copy JiffyDOS ROMs' {
+    $u = Get-Volume | Where-Object { $_.FileSystemLabel -eq 'UNATTEND' } | Select-Object -First 1
+    if (-not $u) { throw 'UNATTEND volume not found' }
+    $src = '{0}:\jiffydos' -f $u.DriveLetter
+    if (-not (Test-Path $src)) { throw "not found: $src" }
+    New-Item -ItemType Directory -Force -Path '{{ winvm_jiffydos_dest }}' | Out-Null
+    Copy-Item -Path (Join-Path $src '*') -Destination '{{ winvm_jiffydos_dest }}' -Force
+    Log "ROMs: $((Get-ChildItem '{{ winvm_jiffydos_dest }}' -File | Select-Object -ExpandProperty Name) -join ', ')"
+}
+{% endif %}
+
+# --- VICE settings ----------------------------------------------------------
+# VICE reads %APPDATA%\vice\vice.ini, which is per-user -- so this writes into
+# {{ winvm_admin_user }}'s profile explicitly rather than trusting $env:APPDATA,
+# which would be whichever account the first-logon script happens to run as.
+#
+# Written only if absent. VICE has SaveResourcesOnExit=1, so once somebody has
+# opened the settings dialog the file on disk is theirs and overwriting it on a
+# later run would throw their work away.
+Step 'seed VICE settings' {
+    $u = Get-Volume | Where-Object { $_.FileSystemLabel -eq 'UNATTEND' } | Select-Object -First 1
+    if (-not $u) { throw 'UNATTEND volume not found' }
+    $src = '{0}:\vice.ini' -f $u.DriveLetter
+    if (-not (Test-Path $src)) { throw "not found: $src" }
+
+    $dir = 'C:\Users\{{ winvm_admin_user }}\AppData\Roaming\vice'
+    $dst = Join-Path $dir 'vice.ini'
+    if (Test-Path $dst) { Log "SKIP  $dst exists, leaving it alone"; return }
+
+    New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    Copy-Item -Path $src -Destination $dst -Force
+    Log "wrote $dst"
+}
+
 Log "=== guest-setup done ==="

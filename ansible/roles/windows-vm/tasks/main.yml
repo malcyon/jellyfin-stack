@@ -284,6 +284,31 @@
   when: winvm_install_vice | bool
   register: winvm_vice_dl
 
+# Copyrighted, and kept out of git by work/ being ignored -- staged onto the
+# unattend ISO so the guest needs no share and no network to reach them.
+- name: Stage the JiffyDOS ROMs into the unattend ISO
+  ansible.builtin.copy:
+    src: "{{ winvm_jiffydos_src }}/"
+    dest: "{{ winvm_state_dir }}/unattend/jiffydos/"
+    remote_src: "{{ (ansible_connection | default('ssh')) == 'local' }}"
+    owner: root
+    group: root
+    mode: "0644"
+    directory_mode: "0755"
+  when: winvm_jiffydos_src | length > 0
+  register: winvm_jiffydos
+
+# Rendered here rather than assembled in PowerShell: the guest only has to copy
+# a finished file into place, and the settings are reviewable in one template.
+- name: Render vice.ini into the unattend staging directory
+  ansible.builtin.template:
+    src: vice.ini.j2
+    dest: "{{ winvm_state_dir }}/unattend/vice.ini"
+    owner: root
+    group: root
+    mode: "0644"
+  register: winvm_vice_ini
+
 - name: Stage the Kickstart ROMs into the unattend ISO
   ansible.builtin.copy:
     src: "{{ winvm_kickstart_src }}/"
@@ -334,7 +359,7 @@
       - -o
       - "{{ winvm_state_dir }}/unattend.iso"
       - "{{ winvm_state_dir }}/unattend"
-  when: winvm_unattend.changed or (winvm_winuae_dl.changed | default(false)) or (winvm_vice_dl.changed | default(false)) or (winvm_kickstarts.changed | default(false)) or winvm_guest_setup.changed or not winvm_unattend_iso.stat.exists
+  when: winvm_unattend.changed or (winvm_winuae_dl.changed | default(false)) or (winvm_vice_dl.changed | default(false)) or (winvm_kickstarts.changed | default(false)) or (winvm_jiffydos.changed | default(false)) or (winvm_vice_ini.changed | default(false)) or winvm_guest_setup.changed or not winvm_unattend_iso.stat.exists
   changed_when: true
 
 # Contains the admin password in plaintext, so keep it off the world-readable
