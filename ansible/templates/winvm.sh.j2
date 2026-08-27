@@ -6,6 +6,7 @@
 #   winvm release <tag>   drop a lease; shut down when the last one goes
 #   winvm up|down|save|status|shot [file]|ssh [cmd...]
 #   winvm scp <src> <dst> copy, with the same non-interactive options as ssh
+#   winvm guest-setup    re-run the guest's first-logon script on a live VM
 #   winvm promote         make the current disk the golden base
 #   winvm revert          discard all changes since the golden base
 #
@@ -182,6 +183,36 @@ case "${1:-status}" in
   # Options before "$@" so a caller can still add their own; BatchMode means a
   # failure is an error, not a prompt on somebody's desktop.
   ssh) shift; ssh "${SSH_OPTS[@]}" "$USER@$IP" "$@" ;;
+
+  # Everything roles/windows-vm installs in the guest happens at first logon,
+  # which leaves no way to bring an EXISTING VM up to date after the role
+  # changes -- the ISO is rebuilt and nothing reads it. This runs the same
+  # script again, off the UNATTEND volume already attached to the domain, so a
+  # role change reaches a live VM without a rebuild.
+  #
+  # guest-setup.ps1 is written to be re-runnable: every step checks before it
+  # acts, msiexec and pnputil tolerate "already installed", and the VICE
+  # settings step leaves an existing vice.ini alone. Re-running it is dull by
+  # design.
+  #
+  # The script is piped in on stdin rather than quoted into a command line:
+  # nesting bash, ssh and PowerShell quoting around a drive letter that moves
+  # is how this gets subtly wrong.
+  #
+  # Session 0 is fine here. Nothing the script does needs a visible desktop --
+  # it writes the registry, runs installers and copies files.
+  'guest-setup')
+    live || die "VM is $(state) -- run: winvm acquire <tag>"
+    ssh "${SSH_OPTS[@]}" "$USER@$IP" \
+        'powershell -NoProfile -ExecutionPolicy Bypass -Command -' <<'PS'
+$u = Get-Volume | Where-Object { $_.FileSystemLabel -eq 'UNATTEND' } | Select-Object -First 1
+if (-not $u) { Write-Error 'UNATTEND volume not attached to this domain'; exit 1 }
+$s = '{0}:\guest-setup.ps1' -f $u.DriveLetter
+if (-not (Test-Path $s)) { Write-Error "not found: $s"; exit 1 }
+& $s
+Get-Content C:\Windows\Temp\guest-setup.log -Tail 40
+PS
+    ;;
   scp) shift; scp "${SSH_OPTS[@]}" "$@" ;;
   status)
     printf 'state:   %s\n' "$(state)"
