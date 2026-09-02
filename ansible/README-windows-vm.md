@@ -326,8 +326,32 @@ winvm release re-session-1     # still held by fuzz-run-7 — stays up
 winvm release fuzz-run-7       # last lease gone — shuts down
 ```
 
-Leases are files in `/var/lib/libvirt/winvm/leases`. A crashed agent leaves a
-stale one behind; `winvm status` lists them and `rm` clears them.
+**A tag is an identity, and two holders of one tag is the failure the leases
+exist to prevent.** `acquire` used to succeed whether or not the tag was
+already held, so two agents both taking the same tag shared one lease file
+invisibly — and the first of them to `release` shut the VM down on top of the
+other's work. Taking a tag that is already held is refused now, and the error
+says to pick one of your own:
+
+```
+$ winvm acquire re-session-1
+winvm: the lease 're-session-1' is already held.
+  Use a tag of your own -- 'winvm acquire re-session-1-$$' -- rather than one
+  somebody else may be using. If you are certain it is stale:
+    winvm release re-session-1
+```
+
+The create is a `noclobber` redirect in a subshell rather than a test followed
+by a write, so two acquires landing together cannot both win it: 20 simultaneous
+acquires of one tag granted 1 and refused 19, where the old code granted all 20.
+Five different tags still all succeed, which is what keeps the VM usable by two
+people at once.
+
+Leases are files in `/var/lib/libvirt/winvm/leases`. **A lease cannot outlive
+the boot it was taken in** — nobody is driving a VM that is switched off, so
+`acquire` clears the directory when it finds the VM off, and a crashed agent
+cannot lock its tag out forever. `winvm status` lists what is held, and
+`winvm release <tag>` clears one by hand.
 
 ### Reverting to a clean state
 

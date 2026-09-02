@@ -115,8 +115,35 @@ acquire() {
   # and nothing would ever remove -- and since `release` only shuts the VM down
   # when the last lease goes, one stranded lease meant it never shut down again.
   mkdir -p "$LEASES"
-  up || { rm -f "$LEASES/$tag"; return 1; }
-  : > "$LEASES/$tag"
+
+  # A lease cannot outlive the boot it was taken in: nobody is driving a VM
+  # that is switched off, so anything in the directory is wreckage from a run
+  # that died. Clearing it here is what stops a crashed agent locking the tag
+  # out forever, and it is safe precisely because the VM is off.
+  local was_off=; off && was_off=1
+  up || { return 1; }
+  [ -n "$was_off" ] && { shopt -s nullglob; rm -f "$LEASES"/*; }
+
+  # A TAG IS AN IDENTITY, AND TWO HOLDERS OF ONE TAG IS THE BUG.
+  # This used to be `: > "$LEASES/$tag"`, which succeeds whether or not the
+  # tag was already held -- so two agents both taking the documented `wish-re`
+  # shared one lease file, invisibly, and the first of them to `release` shut
+  # the VM down on top of the other's emulator mid-debugger-session. The
+  # second acquire is refused instead, which turns a silent collision into an
+  # error naming the way out.
+  #
+  # `noclobber` in a subshell is what makes the create atomic: two acquires
+  # landing together cannot both win it, where a test-then-write pair can.
+  # (Two agents genuinely sharing one tag are indistinguishable to this file,
+  # so refusing is the safe direction: an agent re-taking its own tag is told
+  # something is wrong rather than being handed a lease somebody else holds.)
+  if ! (set -o noclobber; : > "$LEASES/$tag") 2>/dev/null; then
+    echo "winvm: the lease '$tag' is already held." >&2
+    echo "  Use a tag of your own -- 'winvm acquire $tag-\$\$' -- rather than one" >&2
+    echo "  somebody else may be using. If you are certain it is stale:" >&2
+    echo "    winvm release $tag" >&2
+    return 1
+  fi
 }
 
 release() {
